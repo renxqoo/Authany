@@ -1,0 +1,352 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String               @id @default(cuid())
+  tenantId               String               @map("tenant_id")
+  username               String
+  passwordHash           String               @map("password_hash")
+  displayName            String               @map("display_name")
+  email                  String?
+  mobile                 String?
+  status                 String
+  primaryIdentitySource  String?              @map("primary_identity_source")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+  identities             UserIdentity[]
+  authorizationCodes     OAuthAuthorizationCode[]
+  refreshTokens          OAuthRefreshToken[]
+  bindings               UserBinding[]
+  auditEvents            AuditEvent[]
+
+  @@unique([tenantId, username])
+  @@map("users")
+}
+
+model IdentitySource {
+  id         String         @id @default(cuid())
+  tenantId   String         @map("tenant_id")
+  sourceCode String         @map("source_code")
+  sourceType String         @map("source_type")
+  status     String
+  configJson Json           @map("config_json")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  identities UserIdentity[]
+
+  @@unique([tenantId, sourceCode])
+  @@map("identity_sources")
+}
+
+model UserIdentity {
+  id           String         @id @default(cuid())
+  tenantId     String         @map("tenant_id")
+  userId       String         @map("user_id")
+  sourceId     String         @map("source_id")
+  subjectType  String         @map("subject_type")
+  subjectValue String         @map("subject_value")
+  status       String
+  metadataJson Json?          @map("metadata_json")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  user         User           @relation(fields: [userId], references: [id])
+  source       IdentitySource @relation(fields: [sourceId], references: [id])
+
+  @@unique([tenantId, sourceId, subjectType, subjectValue])
+  @@map("user_identities")
+}
+
+model OAuthClient {
+  id                String                  @id @default(cuid())
+  tenantId          String                  @map("tenant_id")
+  clientId          String                  @map("client_id")
+  clientType        String                  @map("client_type")
+  name              String
+  status            String
+  allowedGrantTypes Json                    @map("allowed_grant_types")
+  allowedScopes     Json                    @map("allowed_scopes")
+  ownerType         String?                 @map("owner_type")
+  ownerId           String?                 @map("owner_id")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  secrets           OAuthClientSecret[]
+  redirectUris      OAuthRedirectUri[]
+  authorizationCodes OAuthAuthorizationCode[]
+  accessTokens      OAuthAccessTokenRecord[]
+  refreshTokens     OAuthRefreshToken[]
+
+  @@unique([tenantId, clientId])
+  @@map("oauth_clients")
+}
+
+model OAuthClientSecret {
+  id         String      @id @default(cuid())
+  tenantId   String      @map("tenant_id")
+  clientId   String      @map("client_id")
+  secretHash String      @map("secret_hash")
+  hint       String      @default("")
+  status     String
+  issuedAt   DateTime    @default(now()) @map("issued_at")
+  expiresAt  DateTime?   @map("expires_at")
+  revokedAt  DateTime?   @map("revoked_at")
+  client     OAuthClient @relation(fields: [clientId], references: [id])
+
+  @@map("oauth_client_secrets")
+}
+
+model OAuthRedirectUri {
+  id          String      @id @default(cuid())
+  tenantId    String      @map("tenant_id")
+  clientId    String      @map("client_id")
+  redirectUri String      @map("redirect_uri")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  client      OAuthClient @relation(fields: [clientId], references: [id])
+
+  @@unique([clientId, redirectUri])
+  @@map("oauth_redirect_uris")
+}
+
+model OAuthAuthorizationCode {
+  id                  String      @id @default(cuid())
+  tenantId            String      @map("tenant_id")
+  codeHash            String      @unique @map("code_hash")
+  clientId            String      @map("client_id")
+  userId              String      @map("user_id")
+  redirectUri         String      @map("redirect_uri")
+  scope               String
+  codeChallenge       String      @map("code_challenge")
+  codeChallengeMethod String      @map("code_challenge_method")
+  status              String
+  state               String?
+  nonce               String?
+  expiresAt           DateTime    @map("expires_at")
+  consumedAt          DateTime?   @map("consumed_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  client              OAuthClient @relation(fields: [clientId], references: [id])
+  user                User        @relation(fields: [userId], references: [id])
+
+  @@index([clientId, status])
+  @@map("oauth_authorization_codes")
+}
+
+model OAuthAccessTokenRecord {
+  id           String      @id @default(cuid())
+  tenantId     String      @map("tenant_id")
+  jti          String      @unique
+  tokenType    String      @map("token_type")
+  subjectType  String      @map("subject_type")
+  subjectId    String      @map("subject_id")
+  clientId     String?     @map("client_id")
+  audience     String?
+  scope        String
+  claimsJson   Json        @map("claims_json")
+  issuedAt     DateTime    @default(now()) @map("issued_at")
+  expiresAt    DateTime    @map("expires_at")
+  client       OAuthClient? @relation(fields: [clientId], references: [id])
+
+  @@index([subjectId, subjectType])
+  @@map("oauth_access_token_records")
+}
+
+model OAuthRefreshToken {
+  id                String      @id @default(cuid())
+  tenantId          String      @map("tenant_id")
+  jti               String      @unique
+  tokenHash         String      @unique @map("token_hash")
+  clientId          String      @map("client_id")
+  userId            String      @map("user_id")
+  status            String
+  scope             String
+  issuedAt          DateTime    @default(now()) @map("issued_at")
+  expiresAt         DateTime    @map("expires_at")
+  revokedAt         DateTime?   @map("revoked_at")
+  replacedByTokenId String?     @map("replaced_by_token_id")
+  client            OAuthClient @relation(fields: [clientId], references: [id])
+  user              User        @relation(fields: [userId], references: [id])
+
+  @@index([clientId, userId, status])
+  @@map("oauth_refresh_tokens")
+}
+
+model TokenRevocation {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  tokenJti   String   @map("token_jti")
+  tokenType  String   @map("token_type")
+  reason     String
+  revokedAt  DateTime @default(now()) @map("revoked_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tokenJti, tokenType])
+  @@map("token_revocations")
+}
+
+model AgentProfile {
+  id          String               @id @default(cuid())
+  tenantId    String               @map("tenant_id")
+  agentId     String               @map("agent_id")
+  agentCode   String               @map("agent_code")
+  name        String
+  status      String
+  trustLevel  String               @map("trust_level")
+  description String?
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  runtimes    RuntimeRegistration[]
+  credentials CallerCredential[]
+  grants      DelegationGrant[]
+  auditEvents AuditEvent[]
+
+  @@unique([tenantId, agentId])
+  @@map("agent_profiles")
+}
+
+model RuntimeRegistration {
+  id                        String             @id @default(cuid())
+  tenantId                  String             @map("tenant_id")
+  runtimeId                 String             @map("runtime_id")
+  agentId                   String             @map("agent_id")
+  runtimeType               String             @map("runtime_type")
+  runtimeMode               String             @map("runtime_mode")
+  status                    String
+  credentialDeliveryMode    String             @default("bearer") @map("credential_delivery_mode")
+  allowsDelegationRefresh   Boolean            @default(false) @map("allows_delegation_refresh")
+  allowsRemoteCacheReuse    Boolean            @default(false) @map("allows_remote_cache_reuse")
+  createdAt                 DateTime           @default(now()) @map("created_at")
+  updatedAt                 DateTime           @updatedAt @map("updated_at")
+  agent                     AgentProfile       @relation(fields: [agentId], references: [id])
+  credentials               CallerCredential[]
+
+  @@unique([tenantId, runtimeId])
+  @@index([agentId, runtimeMode, status])
+  @@map("runtime_registrations")
+}
+
+model ServiceSubject {
+  id               String           @id @default(cuid())
+  tenantId         String           @map("tenant_id")
+  serviceSubjectId String           @map("service_subject_id")
+  subjectCode      String           @map("subject_code")
+  name             String
+  status           String
+  description      String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  grants           DelegationGrant[]
+
+  @@unique([tenantId, serviceSubjectId])
+  @@map("service_subjects")
+}
+
+model CallerCredential {
+  id                         String               @id @default(cuid())
+  tenantId                   String               @map("tenant_id")
+  agentId                    String               @map("agent_id")
+  runtimeRegistrationId      String?              @map("runtime_registration_id")
+  credentialType             String               @map("credential_type")
+  credentialHint             String               @map("credential_hint")
+  secretHashOrPublicKeyRef   String               @map("secret_hash_or_public_key_ref")
+  status                     String
+  issuedAt                   DateTime             @default(now()) @map("issued_at")
+  expiresAt                  DateTime?            @map("expires_at")
+  revokedAt                  DateTime?            @map("revoked_at")
+  agent                      AgentProfile         @relation(fields: [agentId], references: [id])
+  runtime                    RuntimeRegistration? @relation(fields: [runtimeRegistrationId], references: [id])
+
+  @@index([agentId, status])
+  @@map("caller_credentials")
+}
+
+model UserBinding {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  provider      String
+  subjectType   String   @map("subject_type")
+  subjectValue  String   @map("subject_value")
+  platformUserId String  @map("platform_user_id")
+  targetSystem  String   @map("target_system")
+  targetUserId  String   @map("target_user_id")
+  status        String
+  sourceType    String   @map("source_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  expiresAt     DateTime? @map("expires_at")
+  user          User     @relation(fields: [platformUserId], references: [id])
+
+  @@unique([tenantId, provider, subjectType, subjectValue, targetSystem])
+  @@index([provider, subjectType, subjectValue, targetSystem, status])
+  @@map("user_bindings")
+}
+
+model DelegationGrant {
+  id                String          @id @default(cuid())
+  tenantId          String          @map("tenant_id")
+  agentId           String          @map("agent_id")
+  subjectKind       String          @map("subject_kind")
+  subjectId         String          @map("subject_id")
+  targetSystem      String          @map("target_system")
+  grantMode         String          @map("grant_mode")
+  status            String
+  createdAt         DateTime        @default(now()) @map("created_at")
+  expiresAt         DateTime?       @map("expires_at")
+  agent             AgentProfile    @relation(fields: [agentId], references: [id])
+
+  @@index([agentId, subjectKind, subjectId, targetSystem, status])
+  @@map("delegation_grants")
+}
+
+model TargetSystemRegistration {
+  id                  String   @id @default(cuid())
+  tenantId            String   @map("tenant_id")
+  targetSystemCode    String   @map("target_system_code")
+  displayName         String   @map("display_name")
+  audience            String
+  status              String
+  tokenValidationMode String   @map("token_validation_mode")
+  trustConfigJson     Json     @map("trust_config_json")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, targetSystemCode])
+  @@map("target_system_registrations")
+}
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  tenantId     String   @map("tenant_id")
+  eventType    String   @map("event_type")
+  userId       String?  @map("user_id")
+  clientId     String?  @map("client_id")
+  agentId      String?  @map("agent_id")
+  targetSystem String?  @map("target_system")
+  result       String
+  errorCode    String?  @map("error_code")
+  requestId    String?  @map("request_id")
+  payloadJson  Json?    @map("payload_json")
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+  user         User?    @relation(fields: [userId], references: [id])
+  agent        AgentProfile? @relation(fields: [agentId], references: [id])
+
+  @@index([eventType, occurredAt])
+  @@map("audit_events")
+}
+
+model KeyRotationRecord {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  kid        String
+  algorithm  String
+  status     String
+  activatedAt DateTime? @map("activated_at")
+  retiredAt  DateTime? @map("retired_at")
+  metadataJson Json?  @map("metadata_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([kid, status])
+  @@map("key_rotation_records")
+}
