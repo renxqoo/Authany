@@ -183,10 +183,8 @@ Agent 不是简单等于 client。
 - `id`
 - `tenant_id`
 - `agent_id`
-- `agent_code`
 - `name`
 - `status`
-- `trust_level`
 - `description`
 
 这样后续支持：
@@ -212,7 +210,7 @@ Agent 不是简单等于 client。
 
 说明：
 
-- `credential_type` 可以是 `secret`、`api_key`、`private_key`、`mtls`
+- V1 `credential_type` 固定为 `agent_secret`
 - 该对象用于证明“调用方就是这个 Agent”
 - 它不是业务权限对象
 
@@ -236,7 +234,7 @@ Agent 不是简单等于 client。
 - `subject_value`
 - `agent_id`
 - `platform_user_id`
-- `target_system`
+- `target_resource`
 - `target_user_id`
 - `status`
 - `bound_at`
@@ -246,7 +244,7 @@ Agent 不是简单等于 client。
 
 - `provider`：身份来源或上下文来源
 - `subject_*`：外部上下文身份，例如 senderId
-- `target_system`：目标系统标识，例如 `finance_system`
+- `target_resource`：目标系统标识，例如 `finance_system`
 - `target_user_id`：业务系统中的用户标识
 
 ## 3.8 delegation_grants
@@ -259,7 +257,7 @@ Agent 不是简单等于 client。
 - `tenant_id`
 - `agent_id`
 - `platform_user_id`
-- `target_system`
+- `target_resource`
 - `grant_mode`
 - `status`
 - `granted_by`
@@ -373,7 +371,7 @@ V1 对 `tenant_id` 的要求：
 - `agent_id`
 - `user_id`
 - `subject_value`
-- `target_system`
+- `target_resource`
 - `status`
 - `expires_at`
 - `jti`
@@ -384,7 +382,7 @@ V1 对 `tenant_id` 的要求：
 - `oauth_clients.client_id`
 - `agent_profiles.agent_id`
 - `user_identities(source_id, subject_type, subject_value, tenant_id)`
-- `user_bindings(provider, subject_type, subject_value, agent_id, target_system, tenant_id)`
+- `user_bindings(provider, subject_type, subject_value, agent_id, target_resource, tenant_id)`
 
 ---
 

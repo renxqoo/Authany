@@ -8,7 +8,7 @@
 
 这份文档不描述平台核心逻辑，而是描述：
 
-**任意目标系统（Target System）如何接入 AuthAny。**
+**任意目标系统（Target Resource）如何接入 AuthAny。**
 
 你可以把它理解为：
 
@@ -33,7 +33,7 @@
 
 目标系统是：
 
-- target system
+- target resource
 - resource server
 - 本地业务权限决策方
 
@@ -78,7 +78,7 @@ sequenceDiagram
     participant U as User
     participant R as Agent Host / Tool Runtime
     participant A as AuthAny
-    participant T as Target System
+    participant T as Target Resource
 
     U->>R: 发起请求
     R->>A: 请求 delegation token
@@ -88,13 +88,13 @@ sequenceDiagram
     T-->>R: 返回业务结果
 ```
 
-### 4.4 Target System 注册流程图
+### 4.4 Target Resource 注册流程图
 
 ```mermaid
 flowchart LR
     ADMIN["管理员 / 接入负责人"] --> A["AuthAny"]
-    ADMIN --> T["Target System"]
-    A --> REG["注册 target_system_code / audience / status"]
+    ADMIN --> T["Target Resource"]
+    A --> REG["注册 target_resource_code / audience / status"]
     REG --> CONF["下发信任配置"]
     CONF --> T
     T --> READY["可接收 AuthAny token"]
@@ -162,7 +162,7 @@ flowchart LR
 
 ## 8. 示例说明
 
-以下都只是 target system 的例子：
+以下都只是 target resource 的例子：
 
 - `ebfx`
 - `crm`
@@ -172,7 +172,7 @@ flowchart LR
 这些名字可以作为：
 
 - `aud`
-- `target_system`
+- `target_resource`
 
 但它们不应写死在平台核心模型中。
 

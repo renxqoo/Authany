@@ -50,7 +50,7 @@
 
 - P0 / P1 / P2 的正式功能清单
 - 平台管理员功能的完整列表
-- Target System 注册的正式规格
+- Target Resource 注册的正式规格
 - Caller Credential 生命周期规格
 - Binding 与 Grant 的清晰区分及状态机
 - 非功能性目标
@@ -143,7 +143,7 @@
 - `05-ADMIN-FEATURES.md`
 - `06-END-USER-FLOWS.md`
 - `07-AGENT-RUNTIME-INTEGRATION.md`
-- `08-TARGET-SYSTEM-INTEGRATION.md`
+- `08-TARGET-RESOURCE-INTEGRATION.md`
 - `09-API-CONTRACTS.md`
 - `10-DATA-MODEL.md`
 
@@ -203,7 +203,7 @@
 - Caller Credential
 - User Binding
 - Delegation Grant
-- Target System Registration
+- Target Resource Registration
 - Audit Event
 
 每个对象都要写：
@@ -246,7 +246,7 @@
 - 平台管理员能力
 - Agent 注册
 - Caller Credential 管理
-- Target System 注册
+- Target Resource 注册
 - Binding 管理
 - Delegation Grant 管理
 - 审计查看
@@ -274,11 +274,11 @@
 - delegation token 获取方式
 - 错误处理
 
-## 5.9 `08-TARGET-SYSTEM-INTEGRATION.md`
+## 5.9 `08-TARGET-RESOURCE-INTEGRATION.md`
 
 必须包含：
 
-- Target System 注册
+- Target Resource 注册
 - trust config
 - audience 约定
 - JWKS 验签
@@ -554,10 +554,10 @@ stateDiagram-v2
 ## 6. 首次绑定流
 > 一句话说明
 
-## 7. Target System 注册流
+## 7. Target Resource 注册流
 > 一句话说明
 
-## 8. Target System 消费 token 流
+## 8. Target Resource 消费 token 流
 > 一句话说明
 
 ## 9. revoke 判定流
@@ -587,9 +587,9 @@ stateDiagram-v2
 - Caller Credential 轮换
 - Caller Credential 撤销
 
-### 8.3 Target System 接入
+### 8.3 Target Resource 接入
 
-- Target System 注册
+- Target Resource 注册
 - audience / issuer / JWKS 信任配置
 - 本地用户映射
 - 本地授权衔接
@@ -638,7 +638,7 @@ stateDiagram-v2
 - `05-ADMIN-FEATURES.md`
 - `06-END-USER-FLOWS.md`
 - `07-AGENT-RUNTIME-INTEGRATION.md`
-- `08-TARGET-SYSTEM-INTEGRATION.md`
+- `08-TARGET-RESOURCE-INTEGRATION.md`
 
 ### Phase 5
 
@@ -654,7 +654,7 @@ stateDiagram-v2
 这些是现有文档体系明显还不够的部分，重写时必须正式补齐：
 
 - 平台角色模型
-- Target System Registration 规格
+- Target Resource Registration 规格
 - Caller Credential 生命周期
 - Binding 与 Grant 的严格区别
 - token 不可变模型

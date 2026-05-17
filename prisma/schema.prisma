@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model OperatorAccount {
   id                     String               @id @default(cuid())
   tenantId               String               @map("tenant_id")
   username               String
@@ -16,50 +16,31 @@ model User {
   email                  String?
   mobile                 String?
   status                 String
-  primaryIdentitySource  String?              @map("primary_identity_source")
   createdAt              DateTime             @default(now()) @map("created_at")
   updatedAt              DateTime             @updatedAt @map("updated_at")
-  identities             UserIdentity[]
   authorizationCodes     OAuthAuthorizationCode[]
   refreshTokens          OAuthRefreshToken[]
-  bindings               UserBinding[]
   auditEvents            AuditEvent[]
+  roles                  OperatorRole[]
 
   @@unique([tenantId, username])
-  @@map("users")
+  @@map("operator_accounts")
 }
 
-model IdentitySource {
-  id         String         @id @default(cuid())
-  tenantId   String         @map("tenant_id")
-  sourceCode String         @map("source_code")
-  sourceType String         @map("source_type")
+model OperatorRole {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  operatorId String   @map("operator_id")
+  roleCode   String   @map("role_code")
+  scope      String
   status     String
-  configJson Json           @map("config_json")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
-  identities UserIdentity[]
+  createdAt  DateTime @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+  operator   OperatorAccount @relation(fields: [operatorId], references: [id])
 
-  @@unique([tenantId, sourceCode])
-  @@map("identity_sources")
-}
-
-model UserIdentity {
-  id           String         @id @default(cuid())
-  tenantId     String         @map("tenant_id")
-  userId       String         @map("user_id")
-  sourceId     String         @map("source_id")
-  subjectType  String         @map("subject_type")
-  subjectValue String         @map("subject_value")
-  status       String
-  metadataJson Json?          @map("metadata_json")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  user         User           @relation(fields: [userId], references: [id])
-  source       IdentitySource @relation(fields: [sourceId], references: [id])
-
-  @@unique([tenantId, sourceId, subjectType, subjectValue])
-  @@map("user_identities")
+  @@unique([tenantId, operatorId, roleCode])
+  @@index([operatorId, status])
+  @@map("operator_roles")
 }
 
 model OAuthClient {
@@ -68,6 +49,7 @@ model OAuthClient {
   clientId          String                  @map("client_id")
   clientType        String                  @map("client_type")
   name              String
+  description       String?
   status            String
   allowedGrantTypes Json                    @map("allowed_grant_types")
   allowedScopes     Json                    @map("allowed_scopes")
@@ -75,6 +57,7 @@ model OAuthClient {
   ownerId           String?                 @map("owner_id")
   createdAt         DateTime                @default(now()) @map("created_at")
   updatedAt         DateTime                @updatedAt @map("updated_at")
+  deletedAt         DateTime?               @map("deleted_at")
   secrets           OAuthClientSecret[]
   redirectUris      OAuthRedirectUri[]
   authorizationCodes OAuthAuthorizationCode[]
@@ -90,10 +73,14 @@ model OAuthClientSecret {
   tenantId   String      @map("tenant_id")
   clientId   String      @map("client_id")
   secretHash String      @map("secret_hash")
+  secretCiphertext String? @map("secret_ciphertext")
+  encryptionKeyId String? @map("encryption_key_id")
   hint       String      @default("")
   status     String
   issuedAt   DateTime    @default(now()) @map("issued_at")
   expiresAt  DateTime?   @map("expires_at")
+  viewedAt   DateTime?   @map("viewed_at")
+  lastUsedAt DateTime?   @map("last_used_at")
   revokedAt  DateTime?   @map("revoked_at")
   client     OAuthClient @relation(fields: [clientId], references: [id])
 
@@ -117,7 +104,7 @@ model OAuthAuthorizationCode {
   tenantId            String      @map("tenant_id")
   codeHash            String      @unique @map("code_hash")
   clientId            String      @map("client_id")
-  userId              String      @map("user_id")
+  operatorId          String      @map("operator_id")
   redirectUri         String      @map("redirect_uri")
   scope               String
   codeChallenge       String      @map("code_challenge")
@@ -129,7 +116,7 @@ model OAuthAuthorizationCode {
   consumedAt          DateTime?   @map("consumed_at")
   createdAt           DateTime    @default(now()) @map("created_at")
   client              OAuthClient @relation(fields: [clientId], references: [id])
-  user                User        @relation(fields: [userId], references: [id])
+  operator            OperatorAccount @relation(fields: [operatorId], references: [id])
 
   @@index([clientId, status])
   @@map("oauth_authorization_codes")
@@ -160,7 +147,7 @@ model OAuthRefreshToken {
   jti               String      @unique
   tokenHash         String      @unique @map("token_hash")
   clientId          String      @map("client_id")
-  userId            String      @map("user_id")
+  operatorId        String      @map("operator_id")
   status            String
   scope             String
   issuedAt          DateTime    @default(now()) @map("issued_at")
@@ -168,9 +155,9 @@ model OAuthRefreshToken {
   revokedAt         DateTime?   @map("revoked_at")
   replacedByTokenId String?     @map("replaced_by_token_id")
   client            OAuthClient @relation(fields: [clientId], references: [id])
-  user              User        @relation(fields: [userId], references: [id])
+  operator          OperatorAccount @relation(fields: [operatorId], references: [id])
 
-  @@index([clientId, userId, status])
+  @@index([clientId, operatorId, status])
   @@map("oauth_refresh_tokens")
 }
 
@@ -184,6 +171,7 @@ model TokenRevocation {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([tokenJti, tokenType])
+  @@unique([tokenJti, tokenType], map: "token_jti_token_type")
   @@map("token_revocations")
 }
 
@@ -191,16 +179,14 @@ model AgentProfile {
   id          String               @id @default(cuid())
   tenantId    String               @map("tenant_id")
   agentId     String               @map("agent_id")
-  agentCode   String               @map("agent_code")
   name        String
   status      String
-  trustLevel  String               @map("trust_level")
   description String?
   createdAt   DateTime             @default(now()) @map("created_at")
   updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
   runtimes    RuntimeRegistration[]
   credentials CallerCredential[]
-  grants      DelegationGrant[]
   auditEvents AuditEvent[]
 
   @@unique([tenantId, agentId])
@@ -222,26 +208,11 @@ model RuntimeRegistration {
   updatedAt                 DateTime           @updatedAt @map("updated_at")
   agent                     AgentProfile       @relation(fields: [agentId], references: [id])
   credentials               CallerCredential[]
+  connections               TargetConnection[]
 
   @@unique([tenantId, runtimeId])
   @@index([agentId, runtimeMode, status])
   @@map("runtime_registrations")
-}
-
-model ServiceSubject {
-  id               String           @id @default(cuid())
-  tenantId         String           @map("tenant_id")
-  serviceSubjectId String           @map("service_subject_id")
-  subjectCode      String           @map("subject_code")
-  name             String
-  status           String
-  description      String?
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
-  grants           DelegationGrant[]
-
-  @@unique([tenantId, serviceSubjectId])
-  @@map("service_subjects")
 }
 
 model CallerCredential {
@@ -255,6 +226,7 @@ model CallerCredential {
   status                     String
   issuedAt                   DateTime             @default(now()) @map("issued_at")
   expiresAt                  DateTime?            @map("expires_at")
+  lastUsedAt                 DateTime?            @map("last_used_at")
   revokedAt                  DateTime?            @map("revoked_at")
   agent                      AgentProfile         @relation(fields: [agentId], references: [id])
   runtime                    RuntimeRegistration? @relation(fields: [runtimeRegistrationId], references: [id])
@@ -263,47 +235,10 @@ model CallerCredential {
   @@map("caller_credentials")
 }
 
-model UserBinding {
-  id            String   @id @default(cuid())
-  tenantId      String   @map("tenant_id")
-  provider      String
-  subjectType   String   @map("subject_type")
-  subjectValue  String   @map("subject_value")
-  platformUserId String  @map("platform_user_id")
-  targetSystem  String   @map("target_system")
-  targetUserId  String   @map("target_user_id")
-  status        String
-  sourceType    String   @map("source_type")
-  createdAt     DateTime @default(now()) @map("created_at")
-  expiresAt     DateTime? @map("expires_at")
-  user          User     @relation(fields: [platformUserId], references: [id])
-
-  @@unique([tenantId, provider, subjectType, subjectValue, targetSystem])
-  @@index([provider, subjectType, subjectValue, targetSystem, status])
-  @@map("user_bindings")
-}
-
-model DelegationGrant {
-  id                String          @id @default(cuid())
-  tenantId          String          @map("tenant_id")
-  agentId           String          @map("agent_id")
-  subjectKind       String          @map("subject_kind")
-  subjectId         String          @map("subject_id")
-  targetSystem      String          @map("target_system")
-  grantMode         String          @map("grant_mode")
-  status            String
-  createdAt         DateTime        @default(now()) @map("created_at")
-  expiresAt         DateTime?       @map("expires_at")
-  agent             AgentProfile    @relation(fields: [agentId], references: [id])
-
-  @@index([agentId, subjectKind, subjectId, targetSystem, status])
-  @@map("delegation_grants")
-}
-
-model TargetSystemRegistration {
+model TargetResourceRegistration {
   id                  String   @id @default(cuid())
   tenantId            String   @map("tenant_id")
-  targetSystemCode    String   @map("target_system_code")
+  targetResourceCode    String   @map("target_resource_code")
   displayName         String   @map("display_name")
   audience            String
   status              String
@@ -311,25 +246,71 @@ model TargetSystemRegistration {
   trustConfigJson     Json     @map("trust_config_json")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
+  connections         TargetConnection[]
 
-  @@unique([tenantId, targetSystemCode])
-  @@map("target_system_registrations")
+  @@unique([tenantId, targetResourceCode])
+  @@map("target_resource_registrations")
+}
+
+model TargetConnection {
+  id                          String    @id @default(cuid())
+  tenantId                    String    @map("tenant_id")
+  connectionId                String    @map("connection_id")
+  principalType               String    @map("principal_type")
+  principalId                 String    @map("principal_id")
+  runtimeRegistrationId       String?   @map("runtime_registration_id")
+  targetResourceId              String    @map("target_resource_id")
+  targetResource                String    @map("target_resource")
+  externalContextMode         String    @map("external_context_mode")
+  allowedContextProvidersJson Json      @map("allowed_context_providers_json")
+  maxTokenTtlSeconds          Int       @map("max_token_ttl_seconds")
+  status                      String
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
+  expiresAt                   DateTime? @map("expires_at")
+  runtime                     RuntimeRegistration? @relation(fields: [runtimeRegistrationId], references: [id])
+  target                      TargetResourceRegistration @relation(fields: [targetResourceId], references: [id])
+  grants                      AccessGrant[]
+
+  @@unique([tenantId, connectionId])
+  @@index([principalType, principalId, targetResource, status])
+  @@index([runtimeRegistrationId, targetResource, status])
+  @@map("target_connections")
+}
+
+model AccessGrant {
+  id              String           @id @default(cuid())
+  tenantId        String           @map("tenant_id")
+  grantId         String           @map("grant_id")
+  connectionId    String           @map("connection_id")
+  grantType       String           @map("grant_type")
+  effect          String
+  constraintsJson Json             @map("constraints_json")
+  status          String
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  expiresAt       DateTime         @map("expires_at")
+  connection      TargetConnection @relation(fields: [connectionId], references: [id])
+
+  @@unique([tenantId, grantId])
+  @@index([connectionId, status, expiresAt])
+  @@map("access_grants")
 }
 
 model AuditEvent {
   id           String   @id @default(cuid())
   tenantId     String   @map("tenant_id")
   eventType    String   @map("event_type")
-  userId       String?  @map("user_id")
+  operatorId   String?  @map("operator_id")
   clientId     String?  @map("client_id")
   agentId      String?  @map("agent_id")
-  targetSystem String?  @map("target_system")
+  targetResource String?  @map("target_resource")
   result       String
   errorCode    String?  @map("error_code")
   requestId    String?  @map("request_id")
   payloadJson  Json?    @map("payload_json")
   occurredAt   DateTime @default(now()) @map("occurred_at")
-  user         User?    @relation(fields: [userId], references: [id])
+  operator     OperatorAccount? @relation(fields: [operatorId], references: [id])
   agent        AgentProfile? @relation(fields: [agentId], references: [id])
 
   @@index([eventType, occurredAt])

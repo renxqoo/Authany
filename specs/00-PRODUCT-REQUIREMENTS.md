@@ -1,365 +1,204 @@
-# AuthAny - 产品需求文档
+# 00 - 产品需求
 
-> AuthAny 是企业统一身份认证与授权平台。本文件定义项目定位、范围、角色、分期、功能边界和总体验收基线。
-
----
-
-## 1. 项目定位
-
-AuthAny 的定位是：
-
-**企业统一身份认证与授权平台。**
-
-它要解决的问题不是“某一个 Agent 产品如何接某一个业务系统”，而是：
-
-- 企业如何统一管理用户身份
-- 企业如何统一管理 Agent 机器身份
-- 任意 Agent 宿主和工具运行时如何安全调用任意目标系统
-- 在不接管业务系统权限模型的前提下，如何完成可信委托访问
-
-一句话：
-
-- **AuthAny 管身份可信、令牌可信、准入可信**
-- **目标系统管资源授权、数据权限、业务行为**
+> AuthAny V1 是遵循 OAuth 2.1 安全原则的企业授权控制平面，面向 Application、Agent、Runtime 和 Target Resource。AuthAny 不是 Auth0 克隆，不是业务用户中心，也不拥有目标系统的用户绑定或资源权限。
 
 ---
 
-## 2. 产品目标
+## 1. 产品定位
 
-AuthAny V1 的目标是建立一套可持续扩展的统一基础设施，优先支持以下能力：
+AuthAny 回答五个问题：
 
-1. 标准 Web / App 的统一登录
-2. Agent 代表用户或以服务主体身份访问目标系统
-3. Target System 在保留本地权限体系的前提下接入统一身份
-4. 让接入方不依赖某个具体 Agent 产品、聊天平台、CLI 或 MCP 实现
+- 哪个 Application、Agent 或 Runtime 正在调用？
+- 它被允许访问哪个 Target Resource？
+- 在什么平台级约束下可以签发短期访问令牌？
+- Target Resource 如何验证令牌，并继续执行自己的本地业务授权？
+- 哪些已签名的请求上下文应该透传给 Target Resource，但不被 AuthAny 解释为业务用户？
 
----
+AuthAny 不回答这些问题：
 
-## 3. 非目标
+- 这个 Lark、微信或 Web 用户在 EBFX 里是谁？
+- 这个用户能访问哪个分支、dealer、角色、菜单、按钮或数据资源？
+- 某个业务动作是否应该被批准？
 
-V1 明确不做：
-
-- 统一业务权限中心
-- 托管目标系统菜单权限、按钮权限、数据权限
-- 业务流程审批引擎
-- 团队/组织协作产品功能
-- 付费/订阅/计费系统
-- 实时多人协作
-- 一开始拆分成多微服务
+这些问题属于 Target Resource 或其接入的企业身份系统。
 
 ---
 
-## 4. 角色定义
+## 2. P0 范围
 
-## 4.1 人类角色
+P0 必须实现：
 
-### 平台超级管理员
-
-负责：
-
-- 平台初始化配置
-- 核心安全策略
-- 密钥与环境治理
-- 高权限审计
-
-### 接入管理员
-
-负责：
-
-- Target System 注册
-- Agent 注册审批
-- 调用凭证生命周期管理
-
-### 业务系统管理员
-
-负责：
-
-- 平台主体到本地主体映射
-- 目标系统本地权限与资源授权
-
-### 最终用户
-
-负责：
-
-- 登录
-- 首次授权/绑定
-- 使用 Agent 访问目标系统
-
-## 4.2 系统角色
-
-### AuthAny
-
-企业统一身份认证与授权平台。
-
-### Agent Host
-
-负责承载 Agent 的产品或平台。
-
-例如：
-
-- OpenClaw
-- Claude Code
-- Opencode
-- 自研 Agent 平台
-
-### Tool Runtime
-
-负责真正执行调用的运行时。
-
-例如：
-
-- CLI
-- MCP Server
-- HTTP Gateway
-- 内部服务适配器
-
-### Target System
-
-最终被访问的目标业务系统。
-
-例如：
-
-- EBFX
-- CRM
-- 财务系统
-- 报表系统
+- Application 管理，系统生成 App ID 和 App Secret。
+- Agent 管理，系统生成 Agent ID。
+- Runtime Registration 管理，用于描述 Agent 的运行环境。
+- Caller Credential 生命周期管理。
+- Target Resource 注册，包含 issuer、audience、JWKS 和令牌验证元数据。
+- Target Connection 管理，连接 Application / Agent / Runtime 与 Target Resource。
+- Access Grant 管理，对 Target Connection 做平台级放行。
+- 为 Application 和 Agent 签发访问 Target Resource 的短期令牌。
+- 校验 Application / Agent / Runtime 请求方的 Requester JWT。
+- 可选 `external_context` 签名透传。
+- Token Broker 缓存可复用的短期令牌。
+- 密钥轮换、审计事件、限流、健康检查和指标。
+- 覆盖全部 P0 管理面的 Admin UI。
 
 ---
 
-## 5. P0 / P1 / P2 范围
+## 3. 明确不做
 
-## 5.1 P0 - 核心范围
+P0 不实现：
 
-### 身份与认证
+- Auth0 式通用用户注册、社交登录或消费者身份平台能力。
+- 业务用户管理。
+- `Lark open_id -> AuthAny User -> Target User` 绑定。
+- Target Resource 用户映射。
+- Target Resource 业务角色、scope、分支权限、dealer 权限、菜单权限或资源权限。
+- 最终用户自助授权 / 绑定门户。
+- AuthAny 级 `binding_required` 错误。
+- 长期保存业务系统用户 token。
+- 旧 User Binding 模型的兼容层。
 
-- 本地兜底账号
-- 企业身份源接入模型
-- 标准 OAuth 2.0 / OIDC 登录
-- 用户统一身份模型
-
-### Agent 与调用凭证
-
-- Agent Profile 注册
-- Runtime Registration 注册
-- Caller Credential 签发 / 登记
-- Caller Credential 轮换
-- Caller Credential 撤销
-
-### Target System 接入
-
-- Target System 注册
-- audience / issuer / JWKS 信任配置
-- 平台主体到目标系统本地主体映射模型
-
-### 委托访问
-
-- User Binding
-- Delegation Grant
-- Service Subject
-- Delegation Token 签发
-- replay protection
-- token revocation
-
-### 治理与运维
-
-- 平台级审计
-- 基础监控
-- 健康检查
-- 关键告警
-
-## 5.2 P1 - 增强范围
-
-- 更多企业身份源正式接入器
-- 管理后台增强
-- 更细的审计检索能力
-- 更完善的 Target System 自助接入能力
-- 统一绑定门户增强
-
-## 5.3 P2 - 后续范围
-
-- 多租户正式隔离
-- 标准 RFC 8693 Token Exchange 完整兼容
-- 策略引擎
-- 更复杂的服务账号授权策略
+AuthAny 可以有 Operator 用于 Admin UI 登录，但 Operator 不是业务用户，也不能作为 Target Resource 的业务主体。
 
 ---
 
-## 6. 核心功能清单
+## 4. 核心角色
 
-### F1. 标准登录
+| 角色 | 含义 |
+|------|------|
+| Operator | AuthAny 自身的管理员。 |
+| Application | 注册到 AuthAny 的软件客户端，使用 App ID / App Secret 标识。 |
+| Agent | AI 或自动化执行身份，使用 Agent ID 标识。 |
+| Runtime Registration | Agent 的具体运行环境，例如 OpenClaw Lark 生产环境、Claude Code 本地环境、MCP Server。 |
+| Caller Credential | Agent / Runtime 调用 AuthAny 时使用的高敏凭证。 |
+| Target Resource | 被访问的业务资源服务，例如 EBFX、CRM、OA、财务系统、报表系统。 |
+| Target Connection | Application / Agent / Runtime 到 Target Resource 的平台级连接。 |
+| Access Grant | 对 Target Connection 的平台级允许规则。 |
+| External Context | 可选的不透明上下文，例如 Lark open_id，会被签进 token，但不被 AuthAny 解释。 |
 
-- 用户可通过 Web/App 使用标准 OAuth 2.0 / OIDC 登录
-- 支持 Authorization Code + PKCE
-- 支持 refresh token rotation
+身份与密钥规则：
 
-### F2. Agent 注册与管理
-
-- 平台可注册 Agent
-- 平台可注册 Runtime，并定义其是 `stateless` 还是 `stateful`
-- Agent 可拥有独立调用凭证
-- 凭证可轮换、停用、撤销
-
-### F3. Target System 注册与信任建立
-
-- 平台可注册 Target System
-- Target System 获得 audience / issuer / JWKS 信任配置
-- 平台可决定哪些 Agent 可访问哪些 Target System
-
-### F4. 首次授权与绑定
-
-- 最终用户首次访问时可完成授权绑定
-- 平台建立 User Binding
-- 平台建立 Delegation Grant
-- 首次 binding 页面或等价入口属于 P0 交付范围
-
-### F5. 委托访问
-
-- Agent Runtime 携带 caller credential 向 AuthAny 请求 delegation token
-- 平台校验 binding、grant、agent、credential、target system
-- 目标系统消费 delegation token 并做本地授权
-- 对于无最终用户的系统任务，平台支持服务主体执行模型
-
-### F6. token 生命周期管理
-
-- token 签发
-- refresh 签发新 token
-- revoke 记录提前失效事实
-- token 本体不可变
-
-### F7. 审计与治理
-
-- 认证审计
-- 委托访问审计
-- 管理操作审计
-- 基础查询与导出
+- `app_id`、`agent_id`、`runtime_id` 是公开标识。
+- `app_secret` 和 Caller Credential 是高敏凭证。
+- Secret 只能保存到服务端、可信 Runtime 或受控密钥系统。
+- Secret 绝不能发送到 Target Resource、浏览器、聊天消息、日志、URL 或本地未加密存储。
+- 跨系统访问应使用短期 JWT。Secret 只用于证明请求方身份或生成请求方断言。
 
 ---
 
-## 7. 不做的事
-
-V1 不做以下内容：
-
-- 将业务系统本地权限迁入 AuthAny
-- 在 token 中内置业务按钮/菜单权限
-- 假设接入方一定是某个 Agent 平台
-- 假设调用一定来自某个聊天平台
-- 假设运行时一定是 CLI 或 MCP
-
----
-
-## 8. 核心业务流程总览
+## 5. 目标架构
 
 ```mermaid
 flowchart TD
-    LOGIN["标准登录"] --> AUTH["AuthAny"]
-    AGENT["Agent 委托访问"] --> AUTH
-    AUTH --> BIND["Binding / Grant"]
-    BIND --> TOKEN["Delegation Token"]
-    TOKEN --> TARGET["Target System"]
-    TARGET --> LOCAL["本地授权"]
+    OP["Operator"] --> ADMIN["Admin UI"]
+    ADMIN --> APP["Application"]
+    ADMIN --> AG["Agent"]
+    ADMIN --> RT["Runtime Registration"]
+    ADMIN --> TS["Target Resource"]
+    ADMIN --> CONN["Target Connection"]
+    ADMIN --> GRANT["Access Grant"]
+
+    RT --> AG
+    CRED["Caller Credential"] --> RT
+    CRED --> AG
+
+    APP --> CONN
+    AG --> CONN
+    RT --> CONN
+    CONN --> TS
+    CONN --> GRANT
+    GRANT --> TOK["短期 Target Token"]
+    TOK --> TS
+
+    EXT["External Context<br/>Lark / WeChat / Web / CLI / MCP"] -. "只签名透传" .-> TOK
 ```
 
 ---
 
-## 9. 核心设计原则
+## 6. 关键产品流程
 
-- 平台核心必须通用，不绑定特定产品
-- 平台只做粗粒度准入，不做目标系统细粒度资源授权
-- token 本体不可变
-- refresh 语义是签发新 token
-- revoke 语义是记录提前失效
-- Agent 场景不强制要求独立 OAuth Client 业务对象
-- Target System 以注册和信任配置方式接入
-- 标准 OAuth 会话 token 与 delegation token 的生命周期策略允许不同
-- 只有被注册为 `stateful` 的可信 Runtime 才允许申请 delegation refresh token
+### 6.1 Agent / Runtime 访问
 
----
+1. Runtime 收到用户或任务触发，构造短期 Requester JWT，包含 `agent_id`、可选 `runtime_id`、`target_resource`、`request_id` 和可选 `external_context`。
+2. Runtime 使用 Requester JWT 调用 AuthAny。
+3. AuthAny 校验 Requester JWT、Caller Credential 绑定、Agent、Runtime、Target Resource、Target Connection、Access Grant、防重放和限流。
+4. AuthAny 返回短期 Target Token，`sub=agent:<agent_id>`。
+5. Runtime 使用 Target Token 调用 Target Resource。
+6. Target Resource 验证 token，并执行本地身份映射和本地权限判断。
 
-## 10. 交付边界
+### 6.2 Application 访问
 
-V1 的交付边界包括：
+1. Application 后端使用服务端凭证构造短期 Requester JWT。
+2. Application 使用 Requester JWT 和 `target_resource` 调用 AuthAny。
+3. AuthAny 校验 Application、Target Connection、Access Grant、防重放和限流。
+4. AuthAny 返回短期 Target Token，`sub=app:<app_id>`。
+5. Application 使用 Target Token 调用 Target Resource。
 
-- 文档规格
-- 核心接口
-- 核心领域对象
-- 核心流程
-- 核心安全要求
-- 运维与验收标准
+### 6.3 用户上下文透传
 
-V1 的交付边界不包括：
+如果调用由聊天、Web、CLI、MCP、Webhook、Workflow、IoT 或 RPA 触发，请求方可以发送：
 
-- 所有未来身份源的一次性实现
-- 所有目标系统的一次性接入
-- 复杂多租户运行时隔离
+```json
+{
+  "external_context": {
+    "provider": "lark",
+    "subject_type": "open_id",
+    "subject_value": "ou_xxx"
+  }
+}
+```
 
----
+AuthAny 只校验形状、大小和 provider 策略，然后把它签进 token，不映射为 AuthAny 用户。
 
-## 11. 总体验收标准
+### 6.4 User -> Agent -> CLI -> Resource
 
-AuthAny V1 被视为完成，至少要满足：
+```mermaid
+sequenceDiagram
+    participant U as 用户 / 触发源
+    participant AG as Agent
+    participant CLI as CLI / Tool Runtime
+    participant A as AuthAny
+    participant T as Target Resource
 
-1. 标准 OAuth / OIDC 登录可用
-2. Agent delegation 链路可用
-3. 系统任务可通过服务主体模型访问 Target System
-4. Target System 能在不改本地权限体系前提下接入
-5. token 生命周期语义正确
-6. 审计、健康检查、基础监控可用
-7. 文档、接口、实现边界一致
-
-详细验收标准见：
-
-- [13-ACCEPTANCE-CRITERIA.md](/Users/wrr/work/authany/specs/13-ACCEPTANCE-CRITERIA.md)
-
----
-
-## 12. 依赖与约束
-
-- 需要至少一种可用身份源
-- 需要可用的 PostgreSQL / Redis 等基础设施
-- 需要明确的密钥与凭证管理方式
-- 需要 Target System 配合完成 trust config 和本地映射
-
-### 12.1 V1 实现技术栈决议
-
-AuthAny V1 当前已确定的参考实现技术栈如下：
-
-- 核心服务框架：`NestJS`
-- HTTP 适配器：`Fastify`
-- 持久化数据库：`PostgreSQL`
-- 缓存、防重放、短期状态：`Redis`
-- ORM：`Prisma`
-- JWT / JWKS / OIDC 实现库：`jose`
-- 管理端交付方式：先 `API First`，后续再补 `Next.js` 管理后台
-
-说明：
-
-- 这组技术选型用于约束 V1 工程实现
-- 不改变协议语义、数据模型和验收标准
-- 如果后续要更换技术栈，应先更新正式规格再进入实现阶段
+    U->>AG: 自然语言任务或事件
+    AG->>CLI: 工具调用 + Requester JWT
+    CLI->>A: 使用 Requester JWT 换 Target Token
+    A->>A: 校验 requester / runtime / connection / grant
+    A-->>CLI: 短期 Target Token
+    CLI->>T: Bearer Target Token
+    T->>T: 本地业务用户映射和资源授权
+    T-->>CLI: 资源数据或目标系统授权链接 / 错误
+    CLI-->>AG: 工具结果
+    AG-->>U: 回复
+```
 
 ---
 
-## 13. 风险与开放问题
+## 7. P1 / P2 范围
 
-高风险点：
+P1：
 
-- Agent 与 Client 模型混淆
-- Binding 与 Grant 模型混淆
-- Target System 注册和用户绑定混淆
-- 将 revoke 误做成 delete
-- 平台侵入目标系统本地权限
+- Operator 登录接入企业 IdP。
+- 更高级的 Target Connection 策略约束。
+- Admin UI 搜索、批量操作和审计筛选增强。
+- 静态 Access Grant 不够时接入策略引擎。
 
-完整问题清单见：
+P2：
 
-- [14-OPEN-QUESTIONS-AND-RISKS.md](/Users/wrr/work/authany/specs/14-OPEN-QUESTIONS-AND-RISKS.md)
+- 多租户隔离强化。
+- 在有价值时兼容 RFC 8693。
+- 高风险 Target Resource 使用 token introspection。
+- 外部 SIEM 和治理系统集成。
 
 ---
 
-## 14. 文档导航
+## 8. 验收基线
 
-后续阅读建议：
+P0 完成条件：
 
-1. [01-ARCHITECTURE.md](/Users/wrr/work/authany/specs/01-ARCHITECTURE.md)
-2. [02-DOMAIN-MODEL.md](/Users/wrr/work/authany/specs/02-DOMAIN-MODEL.md)
-3. [03-PROTOCOLS-AND-TOKENS.md](/Users/wrr/work/authany/specs/03-PROTOCOLS-AND-TOKENS.md)
-4. [04-STATE-MACHINES.md](/Users/wrr/work/authany/specs/04-STATE-MACHINES.md)
+- Application 可以通过已配置的 Target Connection 和 Access Grant 获取 Target Resource token。
+- Agent 和 Runtime 可以通过 Requester JWT 获取 Target Resource token。
+- 可选外部用户上下文可以被签名透传，且 AuthAny 不拥有用户绑定。
+- Target Resource 可以通过 JWKS 验证 RS256 JWT，并继续做本地授权决策。
+- Admin UI 可以管理 Application、Agent、Runtime、Caller Credential、Target Resource、Target Connection、Access Grant、Key 和 Audit。
+- 测试覆盖成功路径、拒绝路径、防重放、非 active 实体、过期 grant、缓存行为和非法 external context。

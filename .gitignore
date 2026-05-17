@@ -4,6 +4,9 @@ dist
 .env.local
 coverage
 .turbo
+.logs
+.next
+*.tsbuildinfo
 .DS_Store
 prisma/dev.db
 prisma/dev.db-journal

@@ -64,7 +64,7 @@ flowchart LR
     EXT2["Channel open_id"] --> U
     EXT3["Employee No."] --> U
     EXT4["Email"] --> U
-    U --> LOCAL["Target System Local User"]
+    U --> LOCAL["Target Resource Local User"]
 ```
 
 ---

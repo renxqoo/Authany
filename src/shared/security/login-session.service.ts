@@ -1,52 +1,86 @@
 import { Injectable } from "@nestjs/common";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { AppConfigService } from "../config/app-config.service";
+import { RedisService } from "../redis/redis.service";
 
 interface LoginSessionPayload {
-  userId: string;
+  operatorId: string;
   tenantId: string;
   expiresAt: number;
 }
 
+const SESSION_TTL_SECONDS = 8 * 60 * 60;
+
 @Injectable()
 export class LoginSessionService {
-  constructor(private readonly config: AppConfigService) {}
+  constructor(
+    private readonly config: AppConfigService,
+    private readonly redis: RedisService,
+  ) {}
 
-  create(userId: string) {
+  async create(operatorId: string) {
+    const sessionId = randomBytes(32).toString("base64url");
     const payload: LoginSessionPayload = {
-      userId,
+      operatorId,
       tenantId: this.config.tenantId,
-      expiresAt: Date.now() + 8 * 60 * 60 * 1000
+      expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000
     };
-    const raw = Buffer.from(JSON.stringify(payload)).toString("base64url");
-    const signature = this.sign(raw);
-    return `${raw}.${signature}`;
+    await this.redis.set(this.sessionKey(sessionId), JSON.stringify(payload), SESSION_TTL_SECONDS);
+    return sessionId;
   }
 
-  parse(cookieValue?: string | null) {
-    if (!cookieValue) {
+  async parse(cookieValue?: string | null) {
+    if (!cookieValue || !isValidSessionId(cookieValue)) {
       return null;
     }
 
-    const [raw, signature] = cookieValue.split(".");
-    if (!raw || !signature) {
+    const raw = await this.redis.get(this.sessionKey(cookieValue));
+    if (!raw) {
       return null;
     }
 
-    const expected = this.sign(raw);
-    if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    let payload: LoginSessionPayload;
+    try {
+      payload = JSON.parse(raw) as LoginSessionPayload;
+    } catch {
+      await this.redis.delete(this.sessionKey(cookieValue));
       return null;
     }
 
-    const payload = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as LoginSessionPayload;
-    if (payload.expiresAt < Date.now()) {
+    if (!isSessionPayload(payload, this.config.tenantId) || payload.expiresAt < Date.now()) {
+      await this.redis.delete(this.sessionKey(cookieValue));
       return null;
     }
 
     return payload;
   }
 
-  private sign(value: string) {
-    return createHmac("sha256", this.config.cookieSecret).update(value).digest("base64url");
+  async revoke(sessionId?: string | null) {
+    if (!sessionId || !isValidSessionId(sessionId)) {
+      return;
+    }
+    await this.redis.delete(this.sessionKey(sessionId));
   }
+
+  private sessionKey(sessionId: string) {
+    return `auth:session:${this.config.tenantId}:${sessionId}`;
+  }
+}
+
+function isValidSessionId(value: string) {
+  return value.length >= 32 && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isSessionPayload(value: unknown, tenantId: string): value is LoginSessionPayload {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const payload = value as Partial<LoginSessionPayload>;
+  return (
+    typeof payload.operatorId === "string" &&
+    payload.operatorId.trim() !== "" &&
+    payload.tenantId === tenantId &&
+    typeof payload.expiresAt === "number" &&
+    Number.isFinite(payload.expiresAt)
+  );
 }

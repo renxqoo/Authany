@@ -1,416 +1,280 @@
 # 09 - API 契约
 
-> 本文档定义 AuthAny V1 需要提供的协议 API、delegation API 和管理 API 的契约边界、输入输出和错误语义。
+> 本文档定义 AuthAny 新控制面模型的 API 契约。
 
 ---
 
-## 1. 文档目标
+## 1. 通用响应
 
-回答：
-
-- AuthAny V1 至少需要哪些接口
-- 每类接口面向谁
-- 哪些字段是正式契约
-- 哪些错误语义必须稳定
-
-不回答：
-
-- 每个框架的 controller 怎么写
-- 每个字段最终数据库列名
-
----
-
-## 2. API 分类
-
-AuthAny V1 的接口分三层：
-
-1. 标准协议 API
-2. delegation API
-3. 管理 API
-
-```mermaid
-flowchart LR
-    DISC["Discovery / JWKS"] --> OAUTH["OAuth / OIDC API"]
-    OAUTH --> DEL["Delegation API"]
-    DEL --> ADMIN["Management API"]
-```
-
----
-
-## 3. 通用接口约定
-
-### 3.1 响应格式
-
-标准 OAuth/OIDC 端点遵循对应协议格式。
-
-平台自定义 API 建议统一返回：
+成功响应：
 
 ```json
 {
-  "code": "ok",
-  "message": "success",
-  "data": {}
+  "data": {},
+  "request_id": "uuid"
 }
 ```
 
-失败时建议返回：
+错误响应：
 
 ```json
 {
-  "code": "binding_required",
-  "message": "User binding is required before delegation can be issued.",
-  "data": {
-    "binding_url": "https://authany.company.com/bind/xxx"
-  },
-  "request_id": "req_xxx"
+  "code": "access_not_allowed",
+  "message": "Access grant is not available for this connection.",
+  "request_id": "uuid"
 }
 ```
 
-### 3.2 安全要求
+规则：
 
-- 所有写接口必须走 HTTPS
-- 所有管理接口必须要求管理身份
-- 所有高危写接口必须审计
-
-### 3.3 幂等性要求
-
-- 创建类接口如需支持重试，应支持幂等键或唯一业务键
-- revoke 类接口重复调用应返回可接受的幂等结果
+- `request_id` 必须贯穿日志、审计和错误响应。
+- 错误 `code` 必须稳定，`message` 可以本地化。
+- 错误响应不得包含 Secret、Credential 或 Token 明文。
 
 ---
 
-## 4. 标准协议 API
+## 2. Requester Token
 
-```mermaid
-flowchart LR
-    AU["/oauth/authorize"] --> TK["/oauth/token"]
-    TK --> UI["/oauth/userinfo"]
-    TK --> RV["/oauth/revoke"]
-    TK --> IN["/oauth/introspect"]
-    DISC["/.well-known/openid-configuration"] --> JWKS["/.well-known/jwks.json"]
+Runtime 或 Application 后端先使用服务端高敏凭证向 AuthAny 换取短期 Requester JWT。
+
+Endpoint：
+
+```http
+POST /api/requester-token
+Authorization: Bearer <caller_credential_or_app_secret>
 ```
 
-### 4.1 必须提供的端点
-
-- `GET /.well-known/openid-configuration`
-- `GET /.well-known/jwks.json`
-- `GET /oauth/authorize`
-- `POST /oauth/token`
-- `POST /oauth/revoke`
-- `POST /oauth/introspect`
-- `GET /oauth/userinfo`
-
-### 4.2 `/oauth/authorize`
-
-用途：
-
-- 标准 Authorization Code + PKCE 登录入口
-
-必须支持：
-
-- `response_type=code`
-- `client_id`
-- `redirect_uri`
-- `scope`
-- `state`
-- `code_challenge`
-- `code_challenge_method`
-
-规则：
-
-- `redirect_uri` 必须严格匹配
-- `state` 必须原样回传
-- authorization code 必须一次性使用
-
-### 4.3 `/oauth/token`
-
-V1 必须支持的 `grant_type`：
-
-- `authorization_code`
-- `refresh_token`
-- `client_credentials`
-
-V1 不支持：
-
-- `password`
-- `implicit`
-
-规则：
-
-- refresh 必须遵循 rotation 语义
-- 刷新成功应签发新 token，而不是更新旧 token
-
-### 4.4 `/oauth/revoke`
-
-用途：
-
-- 提前结束 access token 或 refresh token 的可用性
-
-规则：
-
-- revoke 是记录提前失效，不是删除 token 记录
-- 重复 revoke 不应报错为系统异常
-
-### 4.5 `/oauth/introspect`
-
-用途：
-
-- 提供在线 token 有效性查询能力
-
-说明：
-
-- V1 支持该接口
-- 但 Target System 默认不应强依赖每次请求都走 introspection
-
----
-
-## 5. delegation API
-
-### 5.1 设计定位
-
-这是 AuthAny V1 最重要的扩展能力。
-
-它用于：
-
-- Agent Runtime 用自己的机器身份
-- 代表某个最终用户或 Service Subject
-- 访问某个指定 Target System
-
-### 5.2 建议端点
-
-- `POST /api/delegation/token`
-
-### 5.3 请求认证方式
-
-caller credential 建议通过以下方式之一传递：
-
-- `Authorization: Bearer <caller-credential>`
-- `Authorization: Basic ...`
-- 专用认证头
-
-不建议把原始 caller credential 明文放进 JSON body。
-
-### 5.4 最小请求体
+Agent / Runtime Body：
 
 ```json
 {
-  "grant_type": "urn:authany:params:oauth:grant-type:delegation",
-  "agent_id": "agent_finance_report_v2",
-  "target_system": "ebfx",
-  "subject_context": {
-    "source": "conversation_channel",
-    "subject_type": "channel_user_id",
-    "subject_value": "subject_xxx"
+  "grant_type": "urn:authany:params:oauth:grant-type:requester-token",
+  "principal_type": "agent",
+  "agent_id": "agt_live_xxx",
+  "runtime_id": "rt_openclaw_lark_prod",
+  "target_resource": "ebfx",
+  "external_context": {
+    "provider": "lark",
+    "subject_type": "open_id",
+    "subject_value": "ou_xxx"
   }
 }
 ```
 
-### 5.5 可选扩展字段
+Application Body：
 
-- `request_id`
-- `session_id`
-- `conversation_id`
-- `metadata`
-- `service_subject_id`
+```json
+{
+  "grant_type": "urn:authany:params:oauth:grant-type:requester-token",
+  "principal_type": "application",
+  "app_id": "app_live_xxx",
+  "target_resource": "ebfx"
+}
+```
+
+Response：
+
+```json
+{
+  "requester_token": "eyJ...",
+  "token_type": "Bearer",
+  "expires_in": 300
+}
+```
 
 规则：
 
-- 人类用户场景：必须传 `subject_context`
-- 系统任务场景：必须传 `service_subject_id`
-- 同一请求至少要能确定一个最终 subject
+- Caller Credential 和 App Secret 只用于调用 `/api/requester-token`。
+- `/api/requester-token` 返回的 Requester JWT 必须包含 `token_use=requester_assertion`。
+- Requester JWT 生命周期应很短，V1 默认 5 分钟。
+- Target Resource 不接收 Caller Credential、App Secret 或 Requester JWT。
 
-### 5.6 处理流程
+---
 
-```mermaid
-sequenceDiagram
-    participant R as Runtime
-    participant A as AuthAny
-    participant S as Stores
+## 3. Agent / Runtime Target Token
 
-    R->>A: POST /api/delegation/token
-    A->>A: 校验 caller credential
-    A->>A: 校验 agent / target system
-    A->>S: 查询 binding
-    A->>S: 查询 grant
-    A->>A: replay check
-    A-->>R: delegation token 或 binding_required
+Endpoint：
+
+```http
+POST /api/target-token
+Authorization: Bearer <requester_jwt>
 ```
 
-### 5.7 成功响应
+Body：
 
 ```json
 {
-  "access_token": "jwt",
+  "grant_type": "urn:authany:params:oauth:grant-type:target-access",
+  "target_resource": "ebfx"
+}
+```
+
+可信请求方身份来自 Requester JWT claims，而不是请求体中的裸身份字段。请求体可以重复 `target_resource` 用于路由，但如果 Requester JWT 中也有该字段，AuthAny 必须比较两者是否一致。
+
+响应：
+
+```json
+{
+  "access_token": "eyJ...",
   "token_type": "Bearer",
-  "expires_in": 3600,
-  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token"
+  "expires_in": 900,
+  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+  "cache": "hit",
+  "jti": "uuid"
 }
 ```
 
-### 5.8 绑定缺失响应
+---
+
+## 4. Application Target Token
+
+Endpoint：
+
+```http
+POST /api/target-token
+Authorization: Bearer <requester_jwt>
+```
+
+Body：
 
 ```json
 {
-  "error": "binding_required",
-  "error_description": "User binding is required before delegation can be issued.",
-  "binding_url": "https://authany.company.com/bind/xxx"
+  "grant_type": "client_credentials",
+  "target_resource": "ebfx"
 }
 ```
 
-### 5.9 失败错误码
+响应结构与 Agent / Runtime Target Token 相同。
 
-| 场景 | HTTP | 错误码 | 说明 |
-|------|------|--------|------|
-| 调用凭证无效 | 401 | `invalid_caller_credential` | caller credential 不存在、过期或被撤销 |
-| runtime 无效 | 403 | `invalid_runtime` | runtime registration 不存在、停用或与 caller credential 不匹配 |
-| agent 无效 | 403 | `invalid_agent` | agent 不存在或非 active |
-| service subject 无效 | 403 | `invalid_service_subject` | service subject 不存在或非 active |
-| target system 无效 | 403 | `invalid_target_system` | target system 不存在、停用或不允许 |
-| binding 不存在 | 403 | `binding_required` | 用户需要先完成授权绑定 |
-| grant 不存在 | 403 | `delegation_not_allowed` | 已识别用户，但该 agent 不被允许代其访问 |
-| 请求重放 | 401 | `request_replayed` | request_id 或幂等因子被重复使用 |
-| subject 不合法 | 400 | `invalid_subject_context` | 上下文字段缺失或格式错误 |
+规则：
 
-### 5.10 规则
-
-- 成功响应必须是短期 token
-- `binding_required` 必须带用户可操作入口
-- 失败响应必须可区分“用户要操作”和“管理员要处理”
+- `app_id` 是公开标识，可以出现在 JWT claims、日志和配置中。
+- `app_secret` 是服务端 Secret，不能发送给浏览器、用户、聊天平台、Target Resource 或日志。
+- 如果不用 Requester JWT，而直接使用 OAuth 2.1 client authentication，只能由 confidential server-side client 发起。
+- Public client 不能使用 App Secret。
 
 ---
 
-## 6. 管理 API
+## 5. Admin APIs
 
-V1 建议统一放在：
+P0 Admin APIs：
 
-- `/api/admin/*`
+- `GET /api/v1/admin/applications`
+- `POST /api/v1/admin/applications`
+- `GET /api/v1/admin/applications/:id`
+- `PATCH /api/v1/admin/applications/:id`
+- `POST /api/v1/admin/applications/:id/delete`
+- `POST /api/v1/admin/applications/:id/secrets/rotate`
+- `POST /api/v1/admin/applications/:id/secrets/:secretId/reveal`
+- `GET /api/v1/admin/agents`
+- `POST /api/v1/admin/agents`
+- `GET /api/v1/admin/agents/:id`
+- `PATCH /api/v1/admin/agents/:id`
+- `POST /api/v1/admin/agents/:id/delete`
+- `GET /api/v1/admin/runtimes`
+- `POST /api/v1/admin/runtimes`
+- `PATCH /api/v1/admin/runtimes/:id`
+- `GET /api/v1/admin/agents/:id/credentials`
+- `POST /api/v1/admin/agents/:id/credentials`
+- `POST /api/v1/admin/credentials/:id/revoke`
+- `GET /api/v1/admin/target-resources`
+- `POST /api/v1/admin/target-resources`
+- `PATCH /api/v1/admin/target-resources/:id`
+- `GET /api/v1/admin/target-connections`
+- `POST /api/v1/admin/target-connections`
+- `PATCH /api/v1/admin/target-connections/:id`
+- `GET /api/v1/admin/access-grants`
+- `POST /api/v1/admin/access-grants`
+- `PATCH /api/v1/admin/access-grants/:id`
+- `GET /api/v1/admin/keys`
+- `POST /api/v1/admin/keys`
+- `POST /api/v1/admin/keys/:id/activate`
+- `POST /api/v1/admin/keys/:id/retire`
+- `GET /api/v1/admin/audit-events`
 
-是否采用这个路径前缀不是强制，但能力集合是强制的。
+移除的 Admin APIs：
 
-### 6.1 用户管理 API
+- `/api/v1/admin/bindings`
+- 作为业务用户模块的 `/api/v1/admin/users`
 
-最少需要：
-
-- `GET /api/admin/users`
-- `GET /api/admin/users/:id`
-- `POST /api/admin/users`
-- `PATCH /api/admin/users/:id`
-
-### 6.2 身份源管理 API
-
-最少需要：
-
-- `GET /api/admin/identity-sources`
-- `POST /api/admin/identity-sources`
-- `PATCH /api/admin/identity-sources/:id`
-
-### 6.3 OAuth Client 管理 API
-
-最少需要：
-
-- `GET /api/admin/oauth-clients`
-- `POST /api/admin/oauth-clients`
-- `PATCH /api/admin/oauth-clients/:id`
-- `POST /api/admin/oauth-clients/:id/secrets`
-- `POST /api/admin/oauth-clients/:id/secrets/:secretId/revoke`
-
-### 6.4 Agent 管理 API
-
-最少需要：
-
-- `GET /api/admin/agents`
-- `POST /api/admin/agents`
-- `PATCH /api/admin/agents/:id`
-
-### 6.5 Caller Credential 管理 API
-
-最少需要：
-
-- `GET /api/admin/agents/:id/credentials`
-- `POST /api/admin/agents/:id/credentials`
-- `POST /api/admin/credentials/:id/revoke`
-
-### 6.6 Service Subject 管理 API
-
-最少需要：
-
-- `GET /api/admin/service-subjects`
-- `POST /api/admin/service-subjects`
-- `PATCH /api/admin/service-subjects/:id`
-
-### 6.7 Runtime Registration 管理 API
-
-最少需要：
-
-- `GET /api/admin/runtimes`
-- `POST /api/admin/runtimes`
-- `PATCH /api/admin/runtimes/:id`
-
-### 6.8 Target System 管理 API
-
-最少需要：
-
-- `GET /api/admin/target-systems`
-- `POST /api/admin/target-systems`
-- `PATCH /api/admin/target-systems/:id`
-
-### 6.9 Binding 管理 API
-
-最少需要：
-
-- `GET /api/admin/bindings`
-- `POST /api/admin/bindings`
-- `PATCH /api/admin/bindings/:id`
-
-### 6.10 Grant 管理 API
-
-最少需要：
-
-- `GET /api/admin/grants`
-- `POST /api/admin/grants`
-- `PATCH /api/admin/grants/:id`
-
-### 6.11 审计 API
-
-最少需要：
-
-- `GET /api/admin/audit-events`
-- 支持按时间、user、agent、target_system、event_type 检索
+Operator account APIs 可以作为 Admin 登录能力单独存在。
 
 ---
 
-## 7. API 版本策略
+## 6. 创建 Target Connection
 
-V1 必须明确一条版本策略：
+```json
+{
+  "principal_type": "agent",
+  "principal_id": "agt_live_xxx",
+  "runtime_id": "rt_openclaw_lark_prod",
+  "target_resource": "ebfx",
+  "external_context_mode": "optional",
+  "allowed_context_providers": ["lark"],
+  "max_token_ttl_seconds": 900
+}
+```
 
-- 路径版本化
-- 头版本化
-- 或平台级稳定版本约定
+规则：
 
-当前推荐：
-
-- 对管理 API 使用路径版本化，例如 `/api/v1/admin/...`
-
-标准 OAuth/OIDC 端点通常不额外加版本路径。
+- `principal_type` 只能是 `application`、`agent` 或 `runtime`。
+- `principal_id` 使用稳定业务 ID，不能使用显示名称。
+- `runtime_id` 只用于将 Agent connection 约束到某个 Runtime。
+- Target Connection 不能携带 Target Resource 用户 ID。
 
 ---
 
-## 8. 不做的事
+## 7. 创建 Access Grant
 
-V1 API 契约层不做：
+```json
+{
+  "connection_id": "conn_live_xxx",
+  "grant_type": "target_access",
+  "effect": "allow",
+  "constraints": {
+    "runtime_mode": "stateless",
+    "external_context_required": false
+  },
+  "expires_at": null
+}
+```
 
-- 业务系统细粒度权限接口
-- 为某个特定聊天平台单独发明主协议
-- 为每个命令定义一套不同 delegation 协议
+规则：
+
+- V1 只支持 allow grant。
+- 业务资源 scope 不存储在 AuthAny。
+- Grant 必须绑定有效 Target Connection。
+
+---
+
+## 8. 错误码
+
+| HTTP | Code | 含义 |
+|------|------|------|
+| 400 | `unsupported_grant_type` | 不支持该 grant type。 |
+| 400 | `invalid_external_context` | External context 结构、大小或 provider 无效。 |
+| 401 | `invalid_requester_jwt` | Requester JWT 缺失、无效、过期、重放或受众错误。 |
+| 401 | `invalid_caller_credential` | Caller Credential 缺失、无效、过期或已撤销。 |
+| 401 | `invalid_app_secret` | App Secret 缺失、无效、过期或已撤销。 |
+| 403 | `invalid_application` | Application 非活跃或已删除。 |
+| 403 | `invalid_agent` | Agent 非活跃或已删除。 |
+| 403 | `invalid_runtime` | Runtime 非活跃，或不属于该 Agent。 |
+| 403 | `invalid_target_resource` | Target Resource 非活跃或未知。 |
+| 403 | `connection_not_allowed` | Target Connection 缺失或非活跃。 |
+| 403 | `access_not_allowed` | Access Grant 缺失、非活跃、已过期或约束失败。 |
+| 409 | `request_replayed` | Request ID 已被使用。 |
+
+AuthAny Core 不存在 `binding_required` 错误。
 
 ---
 
 ## 9. 验收标准
 
-| 编号 | 验收项 | 通过标准 |
-|------|--------|----------|
-| API-01 | 标准协议端点 | Discovery、JWKS、authorize、token、revoke、introspect、userinfo 全部存在 |
-| API-02 | Delegation 端点 | Runtime 可通过统一接口申请 delegation token |
-| API-03 | 错误语义 | `binding_required`、`invalid_caller_credential`、`delegation_not_allowed` 等错误语义稳定 |
-| API-04 | 管理能力 | 用户、Agent、Credential、Target System、Binding、Grant、Audit 具备最小管理 API |
-| API-05 | 契约边界 | API 不承载业务系统细粒度权限配置语义 |
+| ID | 要求 |
+|----|------|
+| API-01 | Target Token API 只信任 Requester JWT 或等价 OAuth 2.1 客户端认证。 |
+| API-02 | 请求体中的裸身份字段不能覆盖已签名 claims。 |
+| API-03 | Admin API 覆盖 P0 控制面实体。 |
+| API-04 | 错误码稳定且不泄露敏感信息。 |
+| API-05 | 移除业务用户 Binding API。 |
+| API-06 | `/api/requester-token` 使用 Caller Credential / App Secret 生成短期 Requester JWT，`/api/target-token` 不再接收裸身份字段。 |

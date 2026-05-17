@@ -69,7 +69,7 @@
 - `client_id`
 - `agent_id`
 - `platform_user_id`
-- `target_system`
+- `target_resource`
 - `ip_address`
 - `user_agent`
 - `result`
@@ -102,7 +102,7 @@
 - 按 user 查
 - 按 client 查
 - 按 agent 查
-- 按 target system 查
+- 按 target resource 查
 - 按结果查
 
 ### 4.4 审计流水图

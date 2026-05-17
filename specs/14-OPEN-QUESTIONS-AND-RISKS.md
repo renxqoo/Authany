@@ -1,166 +1,116 @@
-# 14 - 开放问题与风险
+# 14 - 未决问题与风险
 
-> 本文档集中记录 AuthAny V1 仍需确认的问题、已识别风险、规避建议和后续演进提醒。
-
----
-
-## 1. 使用方式
-
-本文件不是为了制造不确定性，而是为了把“还没拍板的地方”集中收口。
-
-规则：
-
-- 已定稿内容不在这里反复讨论
-- 真正影响实现方向的问题必须写在这里
-- 关闭一个开放问题时，应回写对应正式规格文档
+> 本文档记录 AuthAny 简化为授权控制面后的未决问题和已知风险。
 
 ---
 
-## 2. 当前开放问题
+## 1. 未决问题
 
-| 编号 | 问题 | 当前建议 | 是否阻塞 V1 |
-|------|------|----------|-------------|
-| Q-02 | Caller Credential 首选 `agent_secret` 还是 `private_key` | V1 先 `agent_secret/api_key`，为 `private_key` 预留 | 否 |
-| Q-03 | delegation refresh token 应存放在 Runtime 本地，还是集中远程存储 | 当前更推荐集中远程存储 | 否 |
-| Q-04 | 多租户何时从预留升级到正式隔离 | V1 先数据模型预留，运行时后续增强 | 否 |
-| Q-05 | introspection 是否作为目标系统默认模式 | 不推荐默认强依赖，默认本地验签 | 否 |
-
-已确认并关闭：
-
-- 管理端交付方式：`API First`，`Next.js` 后台后补
-- V1 参考实现技术栈：`NestJS + Fastify + PostgreSQL + Redis + Prisma + jose`
+| ID | 问题 | 当前建议 | 是否阻塞 V1 |
+|----|------|----------|-------------|
+| Q-01 | V1 是否支持 private-key JWT 作为 requester authentication？ | 先使用系统生成的服务端 Secret + Requester JWT；Credential 类型设计预留 private key。 | 否 |
+| Q-02 | V1 的 Target Connection 是否允许 Runtime 级约束？ | 是。企业 Agent 部署需要区分环境和运行形态。 | 是 |
+| Q-03 | Application Target Token 使用 `/oauth/token` client credentials，还是统一 `/api/target-token`？ | V1 使用统一 `/api/target-token` + Requester JWT；OAuth 兼容可以后续作为协议适配层暴露。 | 否 |
+| Q-04 | 高风险 Target Resource 是否必须 introspection？ | 默认本地 JWT 验签；后续允许按 Target Resource 打开高风险 introspection。 | 否 |
+| Q-05 | external context metadata 允许多大？ | V1 使用严格大小限制和 provider allowlist。 | 否 |
 
 ---
 
-## 3. 已识别主要风险
+## 2. 主要风险
 
-### 风险 R-01：平台侵入目标系统本地权限
+### R-01：重新引入业务用户绑定
 
-表现：
+风险：
 
-- 在平台定义业务资源权限码
-- 要求目标系统把菜单、按钮、数据权限迁到平台
+- AuthAny 又开始保存 Lark / WeChat / EBFX 用户映射。
 
-后果：
+影响：
 
-- 平台过重
-- 接入成本暴涨
-- 业务系统失去自治
+- 平台重新变成业务系统定制。
+- Target Resource 自治能力消失。
+- 多业务系统推广变难。
 
-规避方案：
+缓解：
 
-- 平台只做粗粒度准入
-- 目标系统保留本地授权
+- 业务用户映射保留在 Target Resource。
+- AuthAny 只签名透传可选 external context。
 
-### 风险 R-02：Agent 与 OAuth Client 模型混淆
+### R-02：混淆 Application 和 Agent
 
-表现：
+风险：
 
-- 把 Agent 直接当 OAuth Client
-- 或把所有 Runtime 都当成普通 client 处理
+- 所有东西都被建模成 OAuth Client。
 
-后果：
+影响：
 
-- 执行主体不清
-- 调用凭证轮换困难
-- 管理边界混乱
+- Runtime 所属关系和 Caller Credential 语义不清晰。
+- Agent 治理变弱。
 
-规避方案：
+缓解：
 
-- 保持 `Agent Profile` 与 `OAuth Client` 分离
-- delegation 场景允许 `Agent + Caller Credential`
+- 保留 Application、Agent、Runtime 和 Caller Credential 四个不同概念。
 
-### 风险 R-03：Binding 与 Grant 混淆
+### R-03：混淆 Target Connection 和 Access Grant
 
-表现：
+风险：
 
-- 用一张表既存身份映射，又存授权关系
+- 一条记录同时表达“能连上”和“已授权”。
 
-后果：
+影响：
 
-- 语义不清
-- 审计困难
-- 状态机混乱
+- 生命周期和审计不清晰。
 
-规避方案：
+缓解：
 
-- binding 单独建模
-- grant 单独建模
+- Target Connection 表达连接关系。
+- Access Grant 表达平台放行。
 
-### 风险 R-04：把 revoke 当 delete
+### R-04：Broker 缓存绕过授权
 
-表现：
+风险：
 
-- 为了“简单”直接删除 token 或 secret 记录
+- Credential 或 Grant 撤销后仍返回缓存 Token。
 
-后果：
+缓解：
 
-- token 生命周期语义错误
-- 审计缺失
-- 无法追溯历史
+- 每次缓存查询前都重新执行授权校验。
 
-规避方案：
+### R-05：External Context 被当成可信用户
 
-- 采用不可变 token 模型
-- revoke 记录提前失效事实
+风险：
 
-### 风险 R-05：把 subject_context 当最终用户主身份
+- Target Resource 直接信任 `external_context.subject_value`，不做本地映射或策略校验。
 
-表现：
+缓解：
 
-- 把聊天用户 ID、会话 ID 直接当平台用户主键
+- 文档和测试明确 external context 只是已签名输入，不是业务授权。
 
-后果：
+### R-06：Secret 被当作 Access Token 使用
 
-- 身份模型不可扩展
-- 多入口时用户分裂
+风险：
 
-规避方案：
+- App Secret 或 Caller Credential 被传到 CLI 输出、浏览器、聊天平台或 Target Resource。
+- Resource server 开始接受 Secret 或裸 ID，而不是 Target Token。
 
-- `subject_context` 只作为 binding 查询输入
-- 平台统一用户仍由 `User` 实体承载
+影响：
 
----
+- Secret 泄露会等同于资源完全泄露。
+- 撤销和防重放能力失效。
 
-## 4. 技术风险
+缓解：
 
-| 编号 | 风险 | 后果 | 建议 |
-|------|------|------|------|
-| T-01 | Redis 故障影响 replay 防护 | delegation 风险上升 | 提供回退策略并保守拒绝高风险请求 |
-| T-02 | key rotation 传播不完整 | 新旧 token 验签混乱 | 保留旧 key 到安全窗口结束 |
-| T-03 | caller credential 泄露 | 可伪造 Agent 调 AuthAny | 强制轮换与撤销能力 |
-| T-04 | Target System 验签实现不规范 | 误接收无效 token | 提供标准接入清单和验签规范 |
+- ID 视为公开标识，Secret 视为服务端高敏凭证。
+- 请求 AuthAny 使用 Requester JWT，访问 Target Resource 使用 Target Token JWT。
+- 增加测试和文档，要求 resource server 拒绝除 Bearer Target Token 以外的授权方式。
 
 ---
 
-## 5. 产品与实施风险
+## 3. 验收门禁
 
-| 编号 | 风险 | 后果 | 建议 |
-|------|------|------|------|
-| P-01 | 一开始想做成“大而全 IAM” | 交付周期失控 | 坚持 V1 范围 |
-| P-02 | 过早支持过多身份源 | 核心模型被边缘需求拖偏 | 先把接入框架做对 |
-| P-03 | 为单一业务系统定制核心模型 | 后续接入能力变差 | 核心模型保持通用 |
+V1 不应通过验收，如果：
 
----
-
-## 6. 后续演进提醒
-
-以下是明确的后续方向，但不属于当前 V1 硬范围：
-
-- 多租户正式隔离
-- RFC 8693 更完整兼容
-- `private_key` / `mtls` 调用凭证
-- 企业身份源正式连接器
-- 更细粒度后台权限分级
-- 风险策略引擎
-
----
-
-## 7. 验收关系
-
-如果以下任一风险没有被规避，V1 不应通过验收：
-
-- 平台侵入目标系统资源权限
-- binding 与 grant 未分离
-- revoke 仍按 delete 设计
-- caller credential 没有轮换和撤销能力
+- AuthAny Core 仍将业务用户 Binding 作为主流程。
+- Token 签发可以跳过 Target Connection 或 Access Grant。
+- Target resource 权限配置在 AuthAny。
+- Broker 缓存可以绕过撤销或非活跃状态。
+- Secret 被当作资源访问 Token 使用，或被发送给 Target Resource。

@@ -1,286 +1,163 @@
 # 11 - 安全要求
 
-> 本文档定义 AuthAny V1 的签名、凭证、防重放、撤销、限流、审计和敏感数据保护要求。
+> 本文档定义 AuthAny 作为 Application / Agent / Runtime 授权控制面的安全要求。
 
 ---
 
-## 1. 文档目标
+## 1. 责任边界
 
-回答：
+AuthAny 负责保护：
 
-- V1 至少要满足哪些底线安全要求
-- 哪些是必须实现，哪些是后续增强
-- 哪些设计如果做错，会直接把平台方向带偏
+- Application 身份。
+- Agent 身份。
+- Runtime 所属关系。
+- Caller Credential 和 App Secret。
+- Target Connection 与 Access Grant 校验。
+- Token 签名、密钥轮换、防重放、限流和审计。
+- 签发 Target Token 前的 Requester JWT 校验。
 
----
+Target Resource 负责保护：
 
-## 2. 安全责任边界
-
-AuthAny 负责：
-
-- 用户认证安全
-- 客户端认证安全
-- Agent 机器身份真实性
-- token 签发可信性
-- revoke、rotation、防重放
-- delegation 校验正确性
-- 平台级审计
-
-Target System 负责：
-
-- 本地资源授权
-- 本地业务风控
-- 本地业务审计
-
-安全边界图：
-
-```mermaid
-flowchart LR
-    P["AuthAny"] -->|"签名/认证/撤销/审计"| TOK["Trusted Token"]
-    TOK --> B["Target System"]
-    B -->|"本地授权/数据权限/业务审计"| RES["Resource Access"]
-```
+- 业务用户映射。
+- 业务资源授权。
+- 本地风控。
+- 资源访问本地审计。
 
 ---
 
-## 3. 签名与密钥
-
-### 3.1 必须要求
-
-- 默认使用 `RS256`
-- 所有 JWT 必须带 `kid`
-- 公钥必须通过 JWKS 分发
-- 必须支持 key rotation
-
-### 3.2 规则
-
-- 私钥不得进入源码仓库
-- 不同环境必须使用不同签名材料
-- 历史公钥必须保留到对应 token 不再需要验证为止
-
-### 3.3 禁止事项
-
-- V1 不允许默认用 `HS256`
-- 不允许没有 `kid`
-- 不允许手工替换密钥但无历史兼容策略
-
----
-
-## 4. Caller Credential 安全
-
-### 4.1 必须要求
-
-- caller credential 必须安全存储
-- 不得硬编码进源码
-- 不得打印到普通日志
-- revoke 后必须立即不可用
-
-### 4.2 轮换要求
-
-- 轮换不应破坏 agent 身份
-- 允许短暂双凭证过渡窗口
-- 旧凭证结束后必须彻底不可用
-
-### 4.3 Runtime 准入要求
-
-- 只有被平台注册为 `stateful` 的 Runtime，才允许申请 delegation refresh token
-- `stateless` Runtime 不得持有 delegation refresh token
-- Runtime 的 `stateful/stateless` 判定必须来自 Runtime Registration，而不是客户端自报
-
----
-
-## 5. Token 生命周期安全
-
-### 5.1 生命周期原则
-
-- Access Token：短期
-- Refresh Token：中期
-- Delegation Token：更短期
-
-### 5.2 核心语义
-
-- token 本体不可变
-- refresh 是签发新 token
-- revoke 是记录提前失效
-
-补充：
-
-- 标准 OAuth access token 可以配套 refresh token
-- delegation token 默认不配套 refresh token
-- delegation refresh 仅对少数可信 `stateful` Runtime 开放
-
-### 5.3 风险提醒
-
-如果把 token 当“可随便 update 的状态对象”，会同时破坏：
-
-- 审计
-- 追踪
-- rotation 语义
-- 兼容标准协议的能力
-
----
-
-## 6. 防重放
-
-delegation 相关请求必须具备防重放能力。
-
-```mermaid
-flowchart LR
-    REQ["delegation request"] --> JTI["提取 jti/request_id"]
-    JTI --> CACHE{"已存在?"}
-    CACHE -- 是 --> DENY["拒绝"]
-    CACHE -- 否 --> SAVE["写入缓存或存储"]
-    SAVE --> PASS["继续处理"]
-```
-
-### 6.1 最低要求
-
-- 支持 `request_id`、`jti` 或等价幂等因子
-- 在有效窗口内可识别重复请求
-
-### 6.2 失败行为
-
-- 命中重放后，应拒绝请求
-- 必须审计该事件
-
----
-
-## 7. Revocation
-
-### 7.1 适用对象
-
-- access token
-- refresh token
-- caller credential
-- grant
-- binding
-
-### 7.2 语义要求
-
-- revoke 不等于 delete
-- revoke 后新请求必须被拒绝
-- 已发 token 的消费端应能通过验证逻辑识别其已失效
-
-### 7.3 设计要求
-
-- revocation 记录必须可查询
-- revocation 不应破坏原始签发记录的审计价值
-
----
-
-## 8. 限流
-
-至少按以下维度限流：
-
-- IP
-- client_id
-- agent_id
-- subject
-
-重点端点：
-
-- `/oauth/token`
-- `/api/delegation/token`
-- `/oauth/introspect`
-
-规则：
-
-- 限流命中必须可观测
-- 不同端点允许不同阈值
-
----
-
-## 9. 审计
-
-必须记录：
-
-- 认证事件
-- token 签发、刷新、撤销
-- delegation 放行、拒绝、binding_required
-- credential 管理事件
-- target system 注册事件
-- 高危后台管理操作
+## 2. 签名与密钥
 
 要求：
 
-- 敏感字段脱敏
-- 审计不可静默丢失
-- 至少支持追溯关键鉴权链路
+- 访问 Token 只能使用 RS256。
+- 每个 JWT 都必须包含 `kid`。
+- 必须提供 JWKS endpoint。
+- 历史公钥必须保留到相关 Token 全部过期。
+- 私钥不能进入源码。
+- 生产环境签名密钥不能与测试环境复用。
 
 ---
 
-## 10. 敏感数据保护
+## 3. Secret 处理
 
-不得明文长期存储：
+敏感值：
 
-- client secret
-- caller credential 原始值
-- refresh token 原始值
+- App Secret。
+- Caller Credential。
+- 启用 refresh 时的 refresh token。
+- 签名私钥。
 
-不得明文暴露：
+规则：
 
-- JWT 私钥
-- 数据库账号口令
-- 第三方密钥材料
-
-日志中不得输出：
-
-- 完整 Authorization 头
-- 原始 refresh token
-- 原始 caller credential
-- Runtime Registration 的敏感策略字段原始配置快照
-
----
-
-## 11. 传输安全
-
-### 11.1 必须要求
-
-- 生产环境所有认证和 delegation 接口必须走 HTTPS
-- 管理接口不得允许明文 HTTP
-
-### 11.2 内网说明
-
-即使部署在企业内网，也不应把“内网”当成替代 TLS 的理由。
+- App ID、Agent ID 和 Runtime ID 是标识符，不是 Secret。
+- App Secret 和 Caller Credential 必须像银行卡密码一样保护。
+- App Secret 和 Caller Credential 只能存在于 confidential server-side application、可信 Runtime 或受管密钥系统中。
+- 不得长期明文存储。
+- 校验优先使用 hash。
+- 只有产品需要查看明文时，才允许加密保存可恢复值。
+- 所有日志和审计 payload 必须脱敏。
+- 查看、轮换、撤销 Secret 的操作必须审计。
+- Secret 不能出现在浏览器、URL、聊天消息、CLI stdout、Target Resource 请求、localStorage、sessionStorage 或源码中。
 
 ---
 
-## 12. 最小安全基线
+## 4. Token Exchange 安全
 
-AuthAny V1 至少要达到以下基线：
+签发或复用 Token 前，AuthAny 必须校验：
 
-1. 非对称签名
-2. JWKS 分发
-3. refresh rotation
-4. delegation 防重放
-5. caller credential 可轮换、可撤销
-6. 只有可信 `stateful` Runtime 才可持有 delegation refresh 能力
-7. 敏感数据不明文长期存储
-8. 审计链路可追溯
+- Requester JWT 签名、issuer、audience、过期时间、subject 和防重放键。
+- 适用场景下的 Caller Credential 或 App Secret 证明。
+- Application / Agent / Runtime 状态。
+- Runtime 所属关系。
+- Target Resource 状态。
+- Target Connection 状态。
+- Access Grant 状态和过期时间。
+- external context provider 和大小策略。
+- 防重放。
+- 限流。
 
----
+缓存命中不能跳过这些校验。
 
-## 13. 后续增强方向
-
-以下能力不是 V1 硬门槛，但架构上要预留：
-
-- mTLS
-- 私钥托管到 HSM/KMS
-- 风险评分
-- 异常行为检测
-- 更细的管理权限分级
+资源服务不能接受 App Secret、Caller Credential、裸 sender ID、裸 Agent ID 或裸 Runtime ID 作为授权。资源访问必须使用 Bearer Target Token。
 
 ---
 
-## 14. 验收标准
+## 5. External Context 安全
 
-| 编号 | 验收项 | 通过标准 |
-|------|--------|----------|
-| SEC-01 | JWT 签名 | 所有 JWT 使用 RS256 且带 `kid` |
-| SEC-02 | JWKS | 公钥可通过 JWKS 分发并支持消费端缓存 |
-| SEC-03 | Rotation | key rotation 和 credential rotation 均具备明确流程 |
-| SEC-04 | Replay | delegation 请求具备防重放能力 |
-| SEC-05 | Runtime 准入 | 只有 Runtime Registration 明确允许的 `stateful` Runtime 才可申请 delegation refresh |
-| SEC-06 | Revocation | revoke 是提前失效记录，不是删除数据 |
-| SEC-07 | 敏感数据保护 | secret、refresh token、caller credential 不明文长期存储 |
-| SEC-08 | 审计 | 核心认证、delegation 和高危管理动作全部有审计 |
+External context 必须：
+
+- 默认可选，除非连接策略要求。
+- 有大小限制。
+- 受 provider allowlist 限制。
+- 被接受后签入 Token。
+- 不包含 Secret 或长期业务 Token。
+
+AuthAny 不能把 external context 转换成业务用户身份。
+
+---
+
+## 6. 撤销
+
+可撤销对象：
+
+- App Secret。
+- Caller Credential。
+- Access Grant。
+- Target Connection。
+- 启用撤销列表时的 issued token JTI。
+
+规则：
+
+- 撤销会立即阻断新的签发。
+- 已签发的短期 Token 默认自然过期，除非 Target Resource 启用 introspection / revocation check。
+- 撤销是记录行为，不是物理删除。
+
+---
+
+## 7. 限流与防重放
+
+限流维度：
+
+- IP。
+- app id。
+- agent id。
+- runtime id。
+- target resource。
+
+防重放：
+
+- Token 请求必须包含 Requester JWT `jti`、request ID 或等价防重放键。
+- 有效防重放窗口内重复使用同一个键必须被拒绝。
+- 防重放拒绝必须审计。
+
+---
+
+## 8. 审计
+
+必须审计：
+
+- Application 创建、更新、删除和 Secret 生命周期。
+- Agent 创建、更新、删除。
+- Runtime 生命周期。
+- Caller Credential 生命周期。
+- Target Resource 生命周期。
+- Target Connection 生命周期。
+- Access Grant 生命周期。
+- Token 签发、拒绝、缓存命中、防重放拒绝。
+- 密钥轮换。
+
+审计不能包含原始 Secret。
+
+---
+
+## 9. 验收标准
+
+| ID | 要求 |
+|----|------|
+| SEC-01 | 所有 access token 使用 RS256 和 `kid`。 |
+| SEC-02 | Secret 和 Credential 不以长期明文存储。 |
+| SEC-03 | 撤销会阻断新的签发。 |
+| SEC-04 | 防重放会拒绝重复请求。 |
+| SEC-05 | Broker 缓存命中仍执行完整授权重新校验。 |
+| SEC-06 | External context 被签名，但不会被解释为 AuthAny 用户身份。 |
+| SEC-07 | Resource server 只接收 Target Token；Secret 保留在服务端，永不到达 Target Resource。 |

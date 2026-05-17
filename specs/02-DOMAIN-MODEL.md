@@ -1,316 +1,243 @@
 # 02 - 领域模型
 
-> 本文档定义 AuthAny 的核心对象、职责边界和对象关系。
+> 本文档定义 AuthAny V1 在移除业务用户所有权后的领域模型。
 
 ---
 
-## 1. 文档目标
-
-回答：
-
-- 平台里有哪些核心对象
-- 它们分别承担什么职责
-- 它们之间如何关联
-
----
-
-## 2. 核心对象总览
+## 1. 模型总览
 
 ```mermaid
 flowchart TD
-    USER["User"] --> BIND["User Binding"]
-    USER --> GRANT["Delegation Grant"]
-    SERVICE["Service Subject"] --> GRANT
-    AGENT["Agent Profile"] --> CRED["Caller Credential"]
-    AGENT --> RUNTIME["Runtime Registration"]
-    RUNTIME --> CRED
-    RUNTIME --> GRANT
-    AGENT --> GRANT
-    TARGET["Target System Registration"] --> GRANT
-    TARGET --> BIND
+    OP["Operator Account"] --> ROLE["Operator Role"]
+    APP["Application"] --> APP_SECRET["App Secret"]
+    AG["Agent"] --> RT["Runtime Registration"]
+    AG --> CRED["Caller Credential"]
+    RT --> CRED
+    TS["Target Resource"] --> TRUST["Trust Metadata"]
+    APP --> CONN["Target Connection"]
+    AG --> CONN
+    RT --> CONN
+    CONN --> TS
+    CONN --> GRANT["Access Grant"]
+    GRANT --> TOKEN["Issued Token Record"]
+    KEY["Signing Key"] --> TOKEN
+    AUDIT["Audit Event"] -. "观察" .-> APP
+    AUDIT -. "观察" .-> AG
+    AUDIT -. "观察" .-> CONN
+    AUDIT -. "观察" .-> TOKEN
 ```
 
 ---
 
-## 3. User
+## 2. Operator Account
 
-表示企业中的“人”。
+Operator Account 表示管理 AuthAny 的人类管理员。
 
-职责：
+规则：
 
-- 平台统一身份主体
-- OIDC `sub` 的基础来源
-- delegation token 中最终被代表对象
-
-不负责：
-
-- 代替目标系统本地用户
-
-关键字段建议：
-
-- `user_id`
-- `tenant_id`
-- `username`
-- `display_name`
-- `email`
-- `mobile`
-- `status`
+- Operator 只用于 AuthAny Admin UI 和 Admin API。
+- Operator 不是业务用户。
+- Operator ID 不能作为 Target Resource 的业务主体。
 
 ---
 
-## 4. Identity Source
+## 3. Application
 
-表示用户身份来源。
-
-例如：
-
-- local
-- enterprise_sso
-- ldap
-- conversation_channel
+Application 表示调用 AuthAny 的服务端软件客户端，必要时也可以参与 OAuth 风格协议流程。
 
 职责：
 
-- 标识用户身份来源类型
-- 支撑多来源身份接入
+- 持有系统生成的 App ID。
+- 持有一个或多个 App Secret。
+- 通过 Target Connection 连接 Target Resource。
+- 在被允许时获取 application-level Target Token。
+- App Secret 只能保存在服务端。
+- 在 Target Token exchange 前构造 Requester JWT，或使用 OAuth 2.1 confidential client authentication。
 
----
+Application token subject：
 
-## 5. OAuth Client
-
-表示标准 OAuth 协议接入方。
-
-适用场景：
-
-- 标准 Web / App / Service 登录接入
-
-职责：
-
-- 参与标准 OAuth 协议
-- 声明 grant type
-- 持有 client 凭证
-
-说明：
-
-- 在 Agent delegation 场景中，它不是强制业务对象
-
----
-
-## 6. Agent Profile
-
-表示业务执行身份。
-
-职责：
-
-- 表达“谁在执行”
-- 参与 delegation 场景
-- 与用户、目标系统之间形成 grant 关系
-
-关键字段建议：
-
-- `agent_id`
-- `agent_code`
-- `name`
-- `status`
-- `trust_level`
-- `description`
-
----
-
-## 7. Caller Credential
-
-表示 Agent Runtime 调用 AuthAny 时使用的机器凭证。
-
-职责：
-
-- 证明调用方就是这个 Agent
-- 参与 delegation exchange 身份校验
-
-可能形式：
-
-- `agent_secret`
-- API Key
-- private key
-- mTLS cert
-
-```mermaid
-flowchart LR
-    ADMIN["管理员"] --> A["AuthAny"]
-    A --> ISSUE["签发或登记 Caller Credential"]
-    ISSUE --> STORE["安全存储"]
-    STORE --> RUNTIME["Runtime 读取后调用 AuthAny"]
+```text
+sub = app:<app_id>
 ```
 
 ---
 
-## 8. Runtime Registration
+## 4. Agent
 
-表示一个具体 Runtime 在 AuthAny 中的注册信息和运行能力档案。
+Agent 表示 AI 或自动化执行身份。
 
-适用场景：
+示例：
 
-- OpenClaw 调 CLI
-- 常驻 MCP Server
-- 常驻内部 Worker
-- 其他可长期或短期运行的 Tool Runtime
+- OpenClaw finance agent
+- Claude Code workspace agent
+- MCP automation agent
+- 内部搜索 agent
 
 职责：
 
-- 把 Runtime 从 Agent 中独立出来
-- 声明 Runtime 是 `stateless` 还是 `stateful`
-- 声明是否允许 delegation refresh
-- 声明是否允许远程缓存复用
+- 拥有 Runtime Registration。
+- 拥有 Caller Credential。
+- 通过 Target Connection 连接 Target Resource。
+- 在被允许时获取 agent-level Target Token。
 
-关键字段建议：
+Agent token subject：
+
+```text
+sub = agent:<agent_id>
+```
+
+---
+
+## 5. Runtime Registration
+
+Runtime Registration 表示 Agent 在哪里运行。
+
+示例：
+
+- `openclaw-lark-prod`
+- `claude-code-local`
+- `mcp-finance-prod`
+
+重要字段：
 
 - `runtime_id`
 - `agent_id`
 - `runtime_type`
-- `runtime_mode`
+- `runtime_mode`: `stateless` 或 `stateful`
 - `status`
-- `allows_delegation_refresh`
 - `allows_remote_cache_reuse`
+- `allows_delegation_refresh`
 
-说明：
+规则：
 
-- Runtime Registration 不是 Caller Credential
-- 同一个 Agent 可以有多个 Runtime Registration
-- 是否允许 delegation refresh，不能由 Runtime 自己声明，必须由平台注册配置决定
+- Runtime 只能属于一个 Agent。
+- Runtime 策略由 AuthAny 配置，不能由调用方自声明。
+- Stateless Runtime 不能启用 refresh 能力。
 
 ---
 
-## 9. User Binding
+## 6. Caller Credential
 
-表示用户与外部上下文或目标系统身份之间的绑定关系。
+Caller Credential 用于证明 Agent / Runtime 调用方身份。
+
+规则：
+
+- 只保存 hash 或公钥引用。
+- 不发送给 Target Resource。
+- 撤销后必须立即阻止新的 token exchange。
+- 如果绑定到 Runtime，不能被其他 Runtime 使用。
+- 用于产生或认证 Requester JWT。
+- 不能发送给用户、聊天平台、浏览器、CLI stdout、URL 或普通日志。
+
+---
+
+## 7. Target Resource
+
+Target Resource 是被访问的业务资源服务。
 
 职责：
 
-- 把外部上下文身份映射到平台用户或目标系统用户
+- 注册 `target_resource_code`。
+- 注册期望的 token `audience`。
+- 消费 AuthAny issuer 和 JWKS。
+- 验证 token 签名、issuer、audience、过期时间和必要 claims。
+- 执行最终本地授权。
 
-关键字段建议：
-
-- `provider`
-- `subject_type`
-- `subject_value`
-- `platform_user_id`
-- `target_system`
-- `target_user_id`
-- `status`
-
-说明：
-
-- Binding 是身份映射
-- 不是授权关系
+AuthAny 不保存 Target Resource 角色或资源权限。
 
 ---
 
-## 10. Delegation Grant
+## 8. Target Connection
 
-表示某个 Agent 是否允许代表某个主体访问某个目标系统。
+Target Connection 替代旧的、有歧义的 `Bindings` 概念。
 
-职责：
+含义：
 
-- 表达企业授权关系
-- 是 delegation token 签发的核心判断条件之一
-
-关键字段建议：
-
-- `agent_id`
-- `subject_kind`
-- `subject_id`
-- `target_system`
-- `grant_mode`
-- `status`
-- `expires_at`
-
-说明：
-
-- Grant 是授权关系
-- 不是单纯身份映射
-- `subject_kind` 至少支持 `user` 和 `service_subject`
-
----
-
-## 11. Service Subject
-
-表示没有最终用户参与时，平台认可的非人类执行主体。
-
-适用场景：
-
-- 定时任务
-- 自动巡检
-- 长期后台作业
-
-职责：
-
-- 在系统任务场景中作为 token 的最终 `sub`
-- 与 Agent、Target System 形成正式授权关系
-
-关键字段建议：
-
-- `service_subject_id`
-- `subject_code`
-- `name`
-- `status`
-- `description`
-
-说明：
-
-- Service Subject 不是 Agent 本身
-- Agent 表达“谁在执行”
-- Service Subject 表达“这次请求最终代表哪个非人类主体”
-
----
-
-## 12. Target System Registration
-
-表示目标系统在 AuthAny 中的注册与信任配置。
-
-职责：
-
-- 让平台知道“这个目标系统是谁”
-- 让平台知道给它签什么 audience
-- 让平台知道它是否 active
-
-关键字段建议：
-
-- `target_system_code`
-- `display_name`
-- `audience`
-- `status`
-- `trust_config`
-
----
-
-## 13. Audit Event
-
-表示平台级审计事件。
-
-职责：
-
-- 记录认证、授权、委托、治理事件
-- 支撑风控、审计、排障
-
----
-
-## 14. Binding 与 Grant 的区别
-
-```mermaid
-flowchart LR
-    B["Binding"] -->|"解决：你是谁"| U["平台用户 / 目标系统本地用户"]
-    G["Grant"] -->|"解决：你能不能代他访问"| T["Target System"]
+```text
+principal -> may connect to -> target resource
 ```
 
-一句话：
+Principal 类型：
 
-- Binding 回答“身份对应关系”
-- Grant 回答“授权是否成立”
-- Service Subject 场景通常只需要 Grant，不需要 User Binding
+- `application`
+- `agent`
+- `runtime`
+
+推荐字段：
+
+- `connection_id`
+- `principal_type`
+- `principal_id`
+- `target_resource`
+- `status`
+- `allowed_context_providers`
+- `external_context_mode`: `none`、`optional`、`required`
+- `max_token_ttl_seconds`
+
+规则：
+
+- Target Connection 是平台连接关系，不是业务用户绑定。
+- 不能包含 `target_user_id`。
+- 不能把 Lark、微信、Web 用户映射成业务用户。
 
 ---
 
-## 15. 关联文档
+## 9. Access Grant
 
-- [03-PROTOCOLS-AND-TOKENS.md](/Users/wrr/work/authany/specs/03-PROTOCOLS-AND-TOKENS.md)
-- [04-STATE-MACHINES.md](/Users/wrr/work/authany/specs/04-STATE-MACHINES.md)
-- [10-DATA-MODEL.md](/Users/wrr/work/authany/specs/10-DATA-MODEL.md)
+Access Grant 对 Target Connection 进行授权。
+
+推荐字段：
+
+- `grant_id`
+- `connection_id`
+- `grant_type`: `target_access`
+- `effect`: `allow`
+- `status`
+- `constraints_json`
+- `expires_at`
+
+规则：
+
+- Access Grant 在 Target Connection active 后评估。
+- Access Grant 可以约束 runtime mode、token TTL、external context provider 和环境。
+- Access Grant 不能表达 `deal.approve`、`branch.finance.read` 这类业务资源权限。
+
+---
+
+## 10. External Context
+
+External Context 是可选的签名透传数据。
+
+示例：
+
+```json
+{
+  "provider": "lark",
+  "subject_type": "open_id",
+  "subject_value": "ou_xxx",
+  "message_id": "om_xxx",
+  "conversation_id": "oc_xxx"
+}
+```
+
+规则：
+
+- AuthAny 校验形状和 provider 策略。
+- AuthAny 把 context 签进 token。
+- AuthAny 不把它映射为 AuthAny 用户。
+- Target Resource 决定如何映射或拒绝。
+
+---
+
+## 11. 已移除概念
+
+以下概念不属于 AuthAny Core：
+
+- Business User
+- User Binding
+- Target User ID
+- 最终用户授权门户
+- `binding_required`
+- `agent_on_behalf_of_user` 平台授权模式
+
+如果 Target Resource 需要用户绑定，应该在本地拥有绑定表，或接入自己的企业 IdP。

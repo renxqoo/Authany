@@ -101,9 +101,6 @@ Caller Credential 表示：
 它可以是：
 
 - `agent_secret`
-- API Key
-- 私钥签名凭证
-- mTLS 证书
 
 它不是业务权限本身，而是调用 AuthAny 的机器凭证。
 

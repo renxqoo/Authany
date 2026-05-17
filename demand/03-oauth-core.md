@@ -180,7 +180,7 @@ Delegation Token 表达的不是“业务权限已经决定”，而是：
 {
   "iss": "https://authany.company.com",
   "sub": "user:1288912691548817920",
-  "aud": "target_system_code",
+  "aud": "target_resource_code",
   "azp": "client_runtime_prod",
   "jti": "uuid",
   "iat": 1760000000,
@@ -222,7 +222,7 @@ Delegation Token 表达的不是“业务权限已经决定”，而是：
 - `profile`
 - `email`
 - `delegation`
-- `system:target_system`
+- `system:target_resource`
 
 ### 7.2 业务 scope
 
@@ -288,20 +288,20 @@ sequenceDiagram
 - 必须校验 agent
 - 必须校验 user binding
 - 必须校验 delegation grant
-- 必须校验 target system
+- 必须校验 target resource
 - 必须支持防重放
 
 ```mermaid
 sequenceDiagram
     participant R as Tool Runtime
     participant A as AuthAny
-    participant T as Target System Registry
+    participant T as Target Resource Registry
 
     R->>A: delegation exchange
     A->>A: 校验 caller credential / agent
     A->>A: 校验 user binding / grant
-    A->>T: 查询 target system
-    T-->>A: target system active
+    A->>T: 查询 target resource
+    T-->>A: target resource active
     A-->>R: delegation token
 ```
 
@@ -336,7 +336,7 @@ sequenceDiagram
 ### 委托能力验收
 
 - Agent / Tool Runtime 可通过 delegation API 获取 delegation token
-- token 能表达 user + agent + target_system 的关系
+- token 能表达 user + agent + target_resource 的关系
 - 未绑定或未授权时返回标准化错误
 
 ### 边界验收

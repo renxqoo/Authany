@@ -15,7 +15,9 @@ export class HashService {
       return false;
     }
     const candidate = scryptSync(value, salt, 64).toString("hex");
-    return timingSafeEqual(Buffer.from(original), Buffer.from(candidate));
+    const originalBuffer = Buffer.from(original);
+    const candidateBuffer = Buffer.from(candidate);
+    return originalBuffer.length === candidateBuffer.length && timingSafeEqual(originalBuffer, candidateBuffer);
   }
 
   hashOpaqueToken(value: string) {

@@ -1,174 +1,107 @@
 # 01 - 架构设计
 
-> 本文档定义 AuthAny 的系统分层、信任边界、运行时角色和核心交互关系。
+> AuthAny 是用于 Target Resource 访问控制的模块化单体控制平面。
 
 ---
 
-## 1. 文档目标
-
-回答：
-
-- AuthAny 在系统里处于什么位置
-- 调用方、平台、目标系统分别做什么
-- 平台与目标系统之间的信任关系如何建立
-
-不回答：
-
-- 每张表具体字段
-- 每个接口的完整契约
-
----
-
-## 2. 背景与上下文
-
-AuthAny 不是某个业务系统的登录模块，也不是某个 Agent 平台的插件。
-
-它需要处于多个系统之间：
-
-- 上游身份源
-- 多种 Agent Host
-- 多种 Tool Runtime
-- 多个 Target System
-
----
-
-## 3. 分层架构
+## 1. 分层架构
 
 ```mermaid
 flowchart LR
-    U["End User"] --> E["Entry Layer<br/>Web / App / Chat UI"]
-    E --> R["Runtime Layer<br/>Agent Host / Tool Runtime"]
-    R --> A["AuthAny Core"]
-    A --> T["Target System"]
-    T --> RES["Business Result"]
+    ENTRY["入口层<br/>Web / Chat / Automation Trigger"] --> RUNTIME["Runtime 层<br/>OpenClaw / Claude Code / MCP / CLI"]
+    APP["Application"] --> AUTH["AuthAny Core"]
+    RUNTIME --> REQ["Requester JWT"]
+    APP --> APPREQ["Requester JWT"]
+    REQ --> AUTH
+    APPREQ --> AUTH
+    AUTH --> TOKEN["签名 Target Token"]
+    TOKEN --> TARGET["Target Resource"]
+    TARGET --> RES["业务资源"]
 ```
 
 ---
 
-## 4. 分层职责
+## 2. 职责边界
 
-## 4.1 Entry Layer
+入口层：
 
-负责：
+- 收集用户输入、任务输入或外部事件。
+- 向 Runtime 提供可选外部上下文。
+- 除非入口层本身也是可信 Runtime，否则不能持有 AuthAny Caller Credential。
 
-- 承接用户交互
-- 组织请求上下文
-- 将请求交给 Runtime
+Runtime 层：
 
-## 4.2 Runtime Layer
+- 持有 Agent Caller Credential。
+- 构造或获取 Requester JWT。
+- 使用 Requester JWT 向 AuthAny 换取 Target Token。
+- 使用 Target Token 调用 Target Resource。
+- 不信任未签名的用户 ID、sender ID 或 runtime ID。
 
-负责：
+Application：
 
-- 持有 Agent 运行时状态
-- 读取 caller credential
-- 调 AuthAny 申请 delegation token
-- 调用目标系统
+- 持有 App ID 和 App Secret。
+- 构造 Requester JWT，或使用 OAuth 2.1 confidential client authentication。
+- 在已配置 Target Connection 和 Access Grant 时，向 AuthAny 换取 Application Target Token。
+- App Secret 只能保存在服务端。
 
-## 4.3 AuthAny Core
+AuthAny Core：
 
-负责：
+- 管理 Application、Agent、Runtime、Credential、Target Resource、Target Connection 和 Access Grant。
+- 签发短期 Target Token。
+- 执行防重放、限流、审计和密钥管理。
 
-- 用户认证
-- token 签发与验签基础设施
-- binding / grant 校验
-- target system trust 校验
-- 审计
+Target Resource：
 
-## 4.4 Target System
-
-负责：
-
-- 消费 delegation token
-- 本地验签
-- 本地主体映射
-- 本地资源授权
-- 本地业务审计
+- 验证 AuthAny 签发的 token。
+- 如有需要，在本地解释 `external_context`。
+- 执行本地资源授权。
 
 ---
 
-## 5. 信任边界
+## 3. 信任边界
 
 ```mermaid
-flowchart LR
-    A["AuthAny"] -->|"签名/认证/撤销"| TOK["Trusted Token"]
-    TOK --> T["Target System"]
-    T -->|"本地授权"| RES["Resource Access"]
+flowchart TD
+    A["AuthAny"] -->|"RS256 签名 Target Token"| T["Target Resource"]
+    T -->|"本地策略"| R["资源访问"]
+    EXT["External Context"] -. "不透明签名 claim" .-> T
 ```
 
-说明：
+规则：
 
-- AuthAny 对 token 可信性负责
-- Target System 对资源访问是否允许负责
+- AuthAny 被信任用于证明调用方身份和 token 完整性。
+- Target Resource 被信任用于最终业务授权。
+- `external_context` 会被签名，但 AuthAny 不解释其业务含义。
 
 ---
 
-## 6. 核心交互链路
-
-### 6.1 标准登录链路
+## 4. 核心请求路径
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant C as Client App
+    participant C as Caller
     participant A as AuthAny
+    participant DB as PostgreSQL
+    participant REDIS as Redis
+    participant T as Target Resource
 
-    U->>C: 访问应用
-    C->>A: /oauth/authorize
-    A->>U: 认证
-    U->>A: 同意授权
-    A-->>C: code
-    C->>A: /oauth/token
-    A-->>C: token
-```
-
-### 6.2 Agent delegation 链路
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant H as Agent Host
-    participant R as Tool Runtime
-    participant A as AuthAny
-    participant T as Target System
-
-    U->>H: 发起请求
-    H->>R: 注入上下文
-    R->>A: delegation exchange
-    A-->>R: delegation token
-    R->>T: Bearer token
-    T-->>R: 返回业务结果
+    C->>A: Target Token 请求 + Requester JWT
+    A->>A: 校验 Requester JWT / OAuth 2.1 client auth
+    A->>DB: 校验 principal / credential binding / target / connection / grant
+    A->>REDIS: 防重放和 token cache
+    A-->>C: 签名 Target Token
+    C->>T: Bearer Target Token
+    T-->>C: 业务结果
 ```
 
 ---
 
-## 7. Target System 与 AuthAny 的关系
+## 5. 架构约束
 
-Target System 不是动态“临时绑定”的，而是：
-
-**在接入阶段完成系统注册与信任配置。**
-
-```mermaid
-flowchart LR
-    ADMIN["接入管理员"] --> A["AuthAny"]
-    ADMIN --> T["Target System"]
-    A --> REG["注册 target_system_code / audience / trust config"]
-    REG --> T
-    T --> READY["建立系统级信任关系"]
-```
-
----
-
-## 8. 架构约束
-
-- 平台核心不得绑定特定业务系统
-- 平台核心不得绑定特定聊天平台
-- Runtime 不得持有长期业务用户秘密
-- Target System 不得将本地权限判断委托回平台
-
----
-
-## 9. 关联文档
-
-- [02-DOMAIN-MODEL.md](/Users/wrr/work/authany/specs/02-DOMAIN-MODEL.md)
-- [03-PROTOCOLS-AND-TOKENS.md](/Users/wrr/work/authany/specs/03-PROTOCOLS-AND-TOKENS.md)
-- [08-TARGET-SYSTEM-INTEGRATION.md](/Users/wrr/work/authany/specs/08-TARGET-SYSTEM-INTEGRATION.md)
+- Core 不能依赖 OpenClaw、Claude Code、Lark、EBFX 或任何具体产品。
+- Core 不能存储 Target Resource 的业务用户或业务权限。
+- Core 不能包含旧 User Binding 语义的兼容代码。
+- Runtime 不能保存长期 Target Resource 用户密钥。
+- Target Resource 不能把本地资源权限判断反向委托给 AuthAny。
+- Target Resource 只能接收 Target Token，不能接收 App Secret、Caller Credential 或裸 sender ID。
+- Chat、Web、CLI、MCP、Webhook、Workflow、IoT、RPA 等入口都归一化为已签名 requester context，不会产生新的 Core principal 类型。

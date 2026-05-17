@@ -27,37 +27,41 @@
 
 ### 第一步：先看总需求
 
-1. [00-PRODUCT-REQUIREMENTS.md](/Users/wrr/work/authany/specs/00-PRODUCT-REQUIREMENTS.md)
+1. [00-PRODUCT-REQUIREMENTS.md](00-PRODUCT-REQUIREMENTS.md)
 
 适合产品、项目负责人、架构师先读，先把范围和边界定住。
 
 ### 第二步：看核心模型
 
-2. [01-ARCHITECTURE.md](/Users/wrr/work/authany/specs/01-ARCHITECTURE.md)
-3. [02-DOMAIN-MODEL.md](/Users/wrr/work/authany/specs/02-DOMAIN-MODEL.md)
-4. [03-PROTOCOLS-AND-TOKENS.md](/Users/wrr/work/authany/specs/03-PROTOCOLS-AND-TOKENS.md)
-5. [04-STATE-MACHINES.md](/Users/wrr/work/authany/specs/04-STATE-MACHINES.md)
+2. [01-ARCHITECTURE.md](01-ARCHITECTURE.md)
+3. [02-DOMAIN-MODEL.md](02-DOMAIN-MODEL.md)
+4. [03-PROTOCOLS-AND-TOKENS.md](03-PROTOCOLS-AND-TOKENS.md)
+5. [04-STATE-MACHINES.md](04-STATE-MACHINES.md)
 
 适合后端、架构、安全先统一词汇和协议语义。
 
 ### 第三步：看四类功能规格
 
-6. [05-ADMIN-FEATURES.md](/Users/wrr/work/authany/specs/05-ADMIN-FEATURES.md)
-7. [06-END-USER-FLOWS.md](/Users/wrr/work/authany/specs/06-END-USER-FLOWS.md)
-8. [07-AGENT-RUNTIME-INTEGRATION.md](/Users/wrr/work/authany/specs/07-AGENT-RUNTIME-INTEGRATION.md)
-9. [08-TARGET-SYSTEM-INTEGRATION.md](/Users/wrr/work/authany/specs/08-TARGET-SYSTEM-INTEGRATION.md)
+6. [05-ADMIN-FEATURES.md](05-ADMIN-FEATURES.md)
+7. [06-END-USER-FLOWS.md](06-END-USER-FLOWS.md)
+8. [07-AGENT-RUNTIME-INTEGRATION.md](07-AGENT-RUNTIME-INTEGRATION.md)
+9. [08-TARGET-RESOURCE-INTEGRATION.md](08-TARGET-RESOURCE-INTEGRATION.md)
 
 这一层最适合拿去做实施拆解。
 
 ### 第四步：看接口、数据、安全、运维和验收
 
-10. [09-API-CONTRACTS.md](/Users/wrr/work/authany/specs/09-API-CONTRACTS.md)
-11. [10-DATA-MODEL.md](/Users/wrr/work/authany/specs/10-DATA-MODEL.md)
-12. [11-SECURITY-REQUIREMENTS.md](/Users/wrr/work/authany/specs/11-SECURITY-REQUIREMENTS.md)
-13. [12-OPS-AND-DEPLOYMENT.md](/Users/wrr/work/authany/specs/12-OPS-AND-DEPLOYMENT.md)
-14. [13-ACCEPTANCE-CRITERIA.md](/Users/wrr/work/authany/specs/13-ACCEPTANCE-CRITERIA.md)
-15. [14-OPEN-QUESTIONS-AND-RISKS.md](/Users/wrr/work/authany/specs/14-OPEN-QUESTIONS-AND-RISKS.md)
-16. [15-ALL-FLOWS.md](/Users/wrr/work/authany/specs/15-ALL-FLOWS.md)
+10. [09-API-CONTRACTS.md](09-API-CONTRACTS.md)
+11. [10-DATA-MODEL.md](10-DATA-MODEL.md)
+12. [11-SECURITY-REQUIREMENTS.md](11-SECURITY-REQUIREMENTS.md)
+13. [12-OPS-AND-DEPLOYMENT.md](12-OPS-AND-DEPLOYMENT.md)
+14. [13-ACCEPTANCE-CRITERIA.md](13-ACCEPTANCE-CRITERIA.md)
+15. [14-OPEN-QUESTIONS-AND-RISKS.md](14-OPEN-QUESTIONS-AND-RISKS.md)
+16. [15-ALL-FLOWS.md](15-ALL-FLOWS.md)
+17. [16-ADMIN-UI-V1.md](16-ADMIN-UI-V1.md)
+18. [17-DELEGATION-TOKEN-BROKER.md](17-DELEGATION-TOKEN-BROKER.md)
+19. [18-APPLICATION-MANAGEMENT.md](18-APPLICATION-MANAGEMENT.md)
+20. [19-AGENT-MANAGEMENT.md](19-AGENT-MANAGEMENT.md)
 
 ---
 
@@ -74,8 +78,8 @@
 
 | 角色 | 建议重点阅读 |
 |------|--------------|
-| 产品 | `00`、`05`、`06`、`13` |
+| 产品 | `00`、`05`、`13`、`16`、`18`、`19` |
 | 后端 | `01`、`02`、`03`、`07`、`08`、`09`、`10` |
 | 安全 | `03`、`04`、`11`、`13`、`14` |
-| 运维 | `12`、`13`、`14` |
+| 运维 | `12`、`13`、`14`、`16` |
 | 接入方 | `07`、`08`、`09`、`15` |

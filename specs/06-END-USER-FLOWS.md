@@ -1,294 +1,135 @@
-# 06 - 最终用户流程规格
+# 06 - 用户与 Operator 流程
 
-> 本文档定义最终用户在 AuthAny V1 中会经历的认证、授权、绑定和异常处理流程。
-
----
-
-## 1. 文档目标
-
-回答：
-
-- 用户第一次使用会发生什么
-- 用户已经授权后再次使用会发生什么
-- 用户什么时候会看到绑定入口
-- 什么叫“重新授权”，什么情况下不应该反复弹授权
+> AuthAny V1 不拥有业务终端用户登录或绑定。本文只定义 Operator 管理登录，以及从用户/触发器到 Agent / CLI / Target Resource 的请求上下文透传。
 
 ---
 
-## 2. 用户流程边界
+## 1. Operator 登录
 
-AuthAny 只负责以下用户级流程：
-
-- 认证
-- 授权同意
-- 首次绑定
-- 绑定失效后的重新绑定
-- 查看基础授权状态
-
-AuthAny 不负责：
-
-- 业务系统内的功能教学
-- 业务系统权限申请流
-- 聊天平台自身的会话产品体验
-
----
-
-## 3. 用户主流程总览
-
-```mermaid
-flowchart TD
-    A["用户发起访问"] --> B{"是否已有有效登录态"}
-    B -- 否 --> C["进入认证"]
-    B -- 是 --> D{"是否已有有效 binding + grant"}
-    C --> D
-    D -- 否 --> E["返回绑定/授权入口"]
-    D -- 是 --> F["Runtime 申请 delegation token"]
-    F --> G["访问 Target System"]
-    G --> H["返回业务结果"]
-```
-
----
-
-## 4. 标准登录流程
-
-### 4.1 目标
-
-让最终用户在 Web / App 中完成统一身份认证，并获得标准登录态。
-
-### 4.2 输入
-
-- 用户访问客户端应用
-- 客户端跳转 AuthAny
-
-### 4.3 输出
-
-- 登录成功：返回标准 OAuth/OIDC token
-- 登录失败：返回清晰错误或中断原因
-
-### 4.4 规则
-
-- 必须使用 Authorization Code + PKCE
-- 必须校验 `state`
-- 用户被挂起时，不允许继续登录
-
-### 4.5 流程图
+Operator 登录 AuthAny，用于管理控制面资源。
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant C as Client App
+    participant O as Operator
+    participant UI as Admin UI
     participant A as AuthAny
 
-    U->>C: 访问应用
-    C->>A: /oauth/authorize
-    A->>U: 认证
-    U->>A: 同意授权
-    A-->>C: authorization code
-    C->>A: /oauth/token
-    A-->>C: access_token / refresh_token / id_token
+    O->>UI: 输入账号密码或通过企业 IdP 登录
+    UI->>A: 发起登录请求
+    A->>A: 校验 Operator 与角色
+    A-->>UI: 返回 admin session
+    UI-->>O: 进入 Dashboard
 ```
-
----
-
-## 5. 首次绑定流程
-
-### 5.1 适用场景
-
-- 用户第一次通过 Agent 访问某个 Target System
-- 平台尚无可用 binding
-- 或者 binding 已失效
-
-### 5.2 目标
-
-让平台建立：
-
-- 用户身份确认
-- 用户与目标系统或外部上下文的 binding
-- 可选的 delegation grant
-
-### 5.3 关键原则
-
-- 这叫“授权绑定”，不是每次都要重新登录
-- 只要 binding 和 grant 仍有效，后续应直接走 delegation
-- 不应把每次 token 过期都解释成“用户需要重新授权”
-- 首次 binding 页面或入口属于 V1 P0，不允许只有口头说明而没有正式入口
-
-### 5.4 流程图
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant R as Runtime
-    participant A as AuthAny
-    participant T as Target System
-
-    U->>R: 发起业务请求
-    R->>A: delegation exchange
-    A-->>R: binding_required + binding_url
-    R-->>U: 展示授权绑定入口
-    U->>A: 打开 binding_url
-    A->>U: 完成认证和同意
-    A->>T: 校验或确认本地映射
-    A->>A: 建立 binding / grant
-    A-->>U: 绑定成功
-```
-
-### 5.5 失败路径
-
-- 用户取消授权：binding 不建立
-- 用户已登录但不满足目标系统接入条件：返回明确失败原因
-- 目标系统映射失败：返回“需联系管理员”而不是无限重试
-
----
-
-## 6. 已授权用户再次访问流程
-
-### 6.1 目标
-
-已完成绑定的用户再次访问时，不再重复打断用户做授权。
-
-### 6.2 放行条件
-
-必须同时满足：
-
-- 用户状态有效
-- Agent 状态有效
-- caller credential 有效
-- binding 有效
-- grant 有效
-- target system 有效
-
-### 6.3 流程图
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant R as Runtime
-    participant A as AuthAny
-    participant T as Target System
-
-    U->>R: 发起业务请求
-    R->>A: delegation exchange
-    A-->>R: delegation token
-    R->>T: Bearer token
-    T-->>R: 业务结果
-    R-->>U: 展示结果
-```
-
-### 6.4 结果要求
-
-- 用户不应感知到内部 token 交换细节
-- 用户只看到业务结果或业务错误
-
----
-
-## 7. 绑定失效后的重新授权
-
-### 7.1 会触发重新绑定的情况
-
-- binding 被撤销
-- grant 被撤销
-- 目标系统管理员要求重新确认身份
-- 用户与目标系统的本地映射失效
-
-### 7.2 不应触发重新绑定的情况
-
-- 仅仅是短期 delegation token 过期
-- Runtime 重启
-- 客户端刷新页面
-
-### 7.3 流程图
-
-```mermaid
-flowchart TD
-    A["用户发起访问"] --> B["delegation exchange"]
-    B --> C{"binding/grant 是否仍有效"}
-    C -- 是 --> D["直接签发 delegation token"]
-    C -- 否 --> E["返回重新绑定入口"]
-```
-
----
-
-## 8. 用户自助查看状态
-
-V1 建议至少提供只读能力：
-
-- 当前是否已绑定
-- 当前绑定到哪些目标系统
-- 最近一次授权时间
-
-V1 不强制要求完整“个人授权中心”页面，但模型必须支持后续扩展。
-
----
-
-## 9. 用户登出与撤销的边界
-
-### 9.1 用户登出
-
-表示：
-
-- 当前登录会话结束
-
-不一定表示：
-
-- 删除 binding
-- 删除 grant
-
-### 9.2 用户撤销授权
-
-表示：
-
-- 对某个 Target System 或某个 Agent 的委托关系被提前终止
-
-结果：
-
-- 后续 delegation exchange 应被拒绝
-
----
-
-## 10. 多入口一致性
-
-同一个最终用户可能来自：
-
-- Web 页面
-- 聊天平台
-- CLI 包装界面
-- 自研工作台
 
 规则：
 
-- 入口可以不同
-- 用户统一身份不能分裂
-- binding / grant 判定必须基于统一模型，而不是某个入口写死逻辑
+- Operator 身份只用于 AuthAny 管理。
+- Operator 的 `sub` 不能作为 Target Resource 的业务主体。
+- Admin session Token 必须校验管理角色。
 
 ---
 
-## 11. 用户可见错误语义
+## 2. 业务用户边界
 
-对最终用户返回的信息应区分为三类：
+业务用户可能出现在：
 
-| 类型 | 示例 | 返回原则 |
-|------|------|----------|
-| 需要操作 | `需要先完成授权绑定` | 给出明确入口 |
-| 可恢复失败 | `授权会话已过期，请重试` | 允许用户再次发起 |
-| 管理员介入 | `当前账号尚未开通目标系统访问权限` | 明确提示联系管理员 |
+- Lark 消息。
+- WeChat 消息。
+- Web 应用 session。
+- Target Resource 本地 session。
+- CLI workspace。
+- MCP tool call。
+- Webhook event。
+- Workflow task。
+- IoT / Edge 设备事件。
+- RPA / Browser 自动化任务。
 
-禁止把底层错误直接原样暴露给最终用户，例如：
+AuthAny 的行为：
 
-- JWT 校验堆栈
-- 数据库错误
-- 内部路径信息
+- 不创建业务用户。
+- 不绑定外部用户 ID。
+- 不要求业务用户在 AuthAny 授权目标系统访问。
+- 不决定业务权限。
+
+Target Resource 的行为：
+
+- 拥有本地用户映射。
+- 拥有本地授权登录或 consent 流程。
+- 拥有本地资源授权。
+
+如果 Lark 用户没有映射到 EBFX 账号，应该由 EBFX 返回 EBFX 自己的授权链接或业务拒绝结果。AuthAny 不返回 `binding_required`，也不托管 EBFX 授权页面。
 
 ---
 
-## 12. 验收标准
+## 3. AI Agent 入口上下文矩阵
 
-| 编号 | 验收项 | 通过标准 |
-|------|--------|----------|
-| EU-01 | 标准登录 | 用户可通过 Authorization Code + PKCE 完成登录 |
-| EU-02 | 首次绑定 | 未绑定用户访问 Agent 能收到明确 binding 入口 |
-| EU-03 | 绑定成功 | 用户完成一次授权绑定后，可直接再次访问而不重复授权 |
-| EU-04 | 再次访问 | binding 与 grant 有效时，平台可直接签发 delegation token |
-| EU-05 | 重新授权边界 | 仅当 binding 或 grant 失效时才要求重新绑定 |
-| EU-06 | 错误反馈 | 用户能区分“需要授权”“需要重试”“需要联系管理员” |
-| EU-07 | 登出边界 | 用户登出不会误删 binding 或 grant |
+AuthAny 必须支持 AI Agent 时代的多入口场景。很多不同入口都可能触发 Agent 获取 Target Resource 数据。
+
+| 入口 | 谁发起 | Agent 拿到的上下文 | 例子 |
+|------|--------|--------------------|------|
+| Chat 平台 | 人 | `sender_id`、群/会话 ID、消息 ID | Lark、WeChat、Slack、Discord |
+| Web 应用 | 人 | Web session、业务用户 ID | 企业门户、CRM、EBFX Portal |
+| CLI | 人或脚本 | 本地用户、workspace、命令参数 | Claude Code、OpenCode、EBFX CLI |
+| MCP Client | Agent / 工具客户端 | client identity、tool call context | Claude Desktop、Cursor、内部 Agent |
+| 定时任务 | 系统 | job ID、trigger source | 每日财务报表、自动对账 |
+| Webhook | 外部系统 | event ID、source system | GitHub、飞书审批、支付回调 |
+| API 服务 | 后端服务 | `app_id`、service identity | 风控服务、BI 服务 |
+| Workflow 编排器 | 流程系统 | workflow ID、step ID、operator | n8n、Temporal、Airflow |
+| IoT / Edge | 设备 | device ID、site ID | 门店设备、采集终端 |
+| RPA / Browser 自动化 | 自动化进程 | bot ID、task ID、operator | Selenium、Playwright、桌面机器人 |
+
+统一规则：
+
+```text
+Entry Context -> Agent / Runtime -> Requester JWT -> AuthAny -> Target Token -> Target Resource
+```
+
+AuthAny 不能硬编码 Lark、OpenClaw、EBFX、CLI 或任何单一入口类型。入口上下文应被归一化为已签名的 `external_context` 或 requester metadata，并由 Target Connection 和 Access Grant 策略治理。
+
+---
+
+## 4. User -> Agent -> CLI -> Resource 流程
+
+```mermaid
+sequenceDiagram
+    participant U as 用户或触发器
+    participant H as Agent Host
+    participant R as Runtime / CLI
+    participant A as AuthAny
+    participant T as Target Resource
+
+    U->>H: 自然语言任务 / Web 操作 / 定时事件
+    H->>R: tool call + Requester JWT
+    R->>A: 用 Requester JWT 换取 Target Token
+    A->>A: 校验 requester、runtime、connection、grant、context 策略
+    A-->>R: 已签名 Target Token
+    R->>T: Bearer Target Token
+    T->>T: 本地用户映射和权限校验
+    T-->>R: 结果或目标系统自己的授权错误
+    R-->>H: tool result
+    H-->>U: 回复
+```
+
+如果缺少本地映射，应由 Target Resource 返回可执行的业务错误。
+
+规则：
+
+- Runtime / CLI 不能把裸 `sender_id` 当成可信身份。
+- 用户、Agent、Runtime 和 channel 上下文应在 Token Exchange 前签入 Requester JWT。
+- AuthAny 将接受的 `external_context` 签入 Target Token。
+- Target Resource 决定 `external_context` 是否映射到本地用户，以及是否具有资源权限。
+- 入口特定字段必须先归一化为 provider-scoped context object，再进行签名。
+- Secret 不能放入 `external_context`。
+
+---
+
+## 5. 验收标准
+
+| ID | 要求 |
+|----|------|
+| UF-01 | Operator 可以登录并使用 Admin UI。 |
+| UF-02 | AuthAny 不展示业务用户绑定页面。 |
+| UF-03 | External context 可以通过签名 Token 从 Agent Host 透传到 Target Resource。 |
+| UF-04 | 缺少业务用户映射时，由 Target Resource 处理，不由 AuthAny 处理。 |
+| UF-05 | CLI 和工具 Runtime 可以在不向用户或聊天平台暴露 Secret 的情况下，用 Requester JWT 换取 Target Token。 |
+| UF-06 | Chat、Web、CLI、MCP、Webhook、Workflow、Scheduler、IoT、RPA 入口上下文都能表达，不需要在 AuthAny Core 写产品特定逻辑。 |

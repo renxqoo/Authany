@@ -42,7 +42,7 @@ AuthAny 是企业统一身份平台，因此安全目标不是“接口能用”
 ```mermaid
 flowchart LR
     P["AuthAny"] -->|"签名/认证/撤销/审计"| TOK["Trusted Token"]
-    TOK --> B["Target System"]
+    TOK --> B["Target Resource"]
     B -->|"本地授权/数据权限/业务审计"| RES["Resource Access"]
 ```
 
@@ -100,7 +100,7 @@ V1 即使不接入 HSM，也必须把轮换模型设计好。
 - client 与 agent 是否匹配
 - 用户绑定是否存在
 - delegation grant 是否有效
-- target system 是否允许
+- target resource 是否允许
 
 ### 4.2 防重放
 
@@ -185,7 +185,7 @@ flowchart LR
 - `client_id`
 - `agent_id`
 - `platform_user_id`
-- `target_system`
+- `target_resource`
 - `ip`
 - `user_agent`
 - `result`
@@ -308,7 +308,7 @@ V1 需要明确识别的主要风险：
 
 ### 审计验收
 
-- 平台可以追踪 client、agent、user、target_system
+- 平台可以追踪 client、agent、user、target_resource
 - 所有关键失败路径都可查询
 
 ### 架构验收
