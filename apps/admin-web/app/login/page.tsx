@@ -1,6 +1,6 @@
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { LoginCard } from "@/features/auth/login-card";
-import { firstParam, getLoginNoticeKey, normalizeNextPath } from "@/features/auth/login-params";
+import { LoginCard } from "@/components/auth/login-card";
+import { firstParam, getLoginNoticeKey, normalizeNextPath } from "@/lib/auth/login-params";
 
 export default async function LoginPage({
   searchParams

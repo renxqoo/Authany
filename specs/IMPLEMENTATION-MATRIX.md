@@ -6,55 +6,55 @@
 
 | 项目 | 状态 | 实现位置 | 测试 |
 |------|------|----------|------|
-| OIDC Discovery | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| JWKS | 已完成 | `src/shared/security/token-signer.service.ts` | `test/shared-infra.test.ts`, `test/key-rotation-and-target.test.ts` |
-| Authorization Code + PKCE | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts`, `test/pkce.test.ts` |
-| Refresh Rotation | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| Revocation | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| Introspection | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| UserInfo | 已完成 | `src/modules/oidc/oidc.service.ts` 的 operator profile endpoint | `test/oidc.service.test.ts` |
-| Client Credentials | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| Requester JWT 契约 | 已完成 | `POST /api/requester-token` 签发短期 Requester JWT；`POST /api/target-token` 只接受 `token_use=requester_assertion` | `test/delegation.service.test.ts` |
+| OIDC Discovery | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| JWKS | 已完成 | `server/src/shared/security/token-signer.service.ts` | `server/test/shared-infra.test.ts`, `server/test/key-rotation-and-target.test.ts` |
+| Authorization Code + PKCE | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts`, `server/test/pkce.test.ts` |
+| Refresh Rotation | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| Revocation | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| Introspection | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| UserInfo | 已完成 | `server/src/modules/oidc/oidc.service.ts` 的 operator profile endpoint | `server/test/oidc.service.test.ts` |
+| Client Credentials | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| Requester JWT 契约 | 已完成 | `POST /api/requester-token` 签发短期 Requester JWT；`POST /api/target-token` 只接受 `token_use=requester_assertion` | `server/test/delegation.service.test.ts` |
 
 ## 2. Target Access
 
 | 项目 | 状态 | 实现位置 | 测试 |
 |------|------|----------|------|
-| Agent Caller Credential 校验 | 已完成 | `src/modules/delegation/caller-credential.service.ts` | `test/delegation.service.test.ts` |
-| Runtime 状态与所属关系校验 | 已完成 | `src/modules/delegation/caller-credential.service.ts` | `test/delegation.service.test.ts` |
-| 防重放 | 已完成 | `src/modules/delegation/replay-protection.service.ts` | `test/delegation.service.test.ts` |
-| Target Connection 校验 | 已完成 | `src/modules/delegation/delegation-policy.service.ts`, `src/modules/delegation/target-token-exchange.service.ts`, `target_connections` | `test/delegation.service.test.ts` |
-| Access Grant 校验 | 已完成 | `src/modules/delegation/delegation-policy.service.ts`, `src/modules/delegation/target-token-exchange.service.ts`, `access_grants` | `test/delegation.service.test.ts` |
-| Agent Target Token | 已完成 | `POST /api/target-token`，由 `src/modules/delegation/target-token-exchange.service.ts` 实现 | `test/delegation.service.test.ts` |
-| Application Target Token | 已完成 | Application principal 通过 Requester JWT、Target Connection 和 Access Grant 换取 Target Token | `test/delegation.service.test.ts` |
-| Target Token Broker 缓存 | 已完成 | `src/modules/delegation/delegation-token-broker.service.ts` | `test/delegation-token-broker.service.test.ts`, `test/delegation.service.test.ts` |
-| Target Token 缓存命中审计 | 已完成 | `src/modules/delegation/target-token-exchange.service.ts` | `test/delegation.service.test.ts` |
-| Target Token 响应 `cache=hit|miss` | 已完成 | `src/modules/delegation/target-token-exchange.service.ts` | `test/delegation-token-broker.service.test.ts`, `test/delegation.service.test.ts` |
-| 缓存命中授权重校验 | 已完成 | `src/modules/delegation/target-token-exchange.service.ts` | `test/delegation-cache-authorization.test.ts`, `test/delegation.service.test.ts` |
-| Redis 缓存故障降级 | 已完成 | `src/modules/delegation/delegation-token-broker.service.ts` | `test/delegation-token-broker.service.test.ts` |
+| Agent Caller Credential 校验 | 已完成 | `server/src/modules/delegation/caller-credential.service.ts` | `server/test/delegation.service.test.ts` |
+| Runtime 状态与所属关系校验 | 已完成 | `server/src/modules/delegation/caller-credential.service.ts` | `server/test/delegation.service.test.ts` |
+| 防重放 | 已完成 | `server/src/modules/delegation/replay-protection.service.ts` | `server/test/delegation.service.test.ts` |
+| Target Connection 校验 | 已完成 | `server/src/modules/delegation/delegation-policy.service.ts`, `server/src/modules/delegation/target-token-exchange.service.ts`, `target_connections` | `server/test/delegation.service.test.ts` |
+| Access Grant 校验 | 已完成 | `server/src/modules/delegation/delegation-policy.service.ts`, `server/src/modules/delegation/target-token-exchange.service.ts`, `access_grants` | `server/test/delegation.service.test.ts` |
+| Agent Target Token | 已完成 | `POST /api/target-token`，由 `server/src/modules/delegation/target-token-exchange.service.ts` 实现 | `server/test/delegation.service.test.ts` |
+| Application Target Token | 已完成 | Application principal 通过 Requester JWT、Target Connection 和 Access Grant 换取 Target Token | `server/test/delegation.service.test.ts` |
+| Target Token Broker 缓存 | 已完成 | `server/src/modules/delegation/delegation-token-broker.service.ts` | `server/test/delegation-token-broker.service.test.ts`, `server/test/delegation.service.test.ts` |
+| Target Token 缓存命中审计 | 已完成 | `server/src/modules/delegation/target-token-exchange.service.ts` | `server/test/delegation.service.test.ts` |
+| Target Token 响应 `cache=hit|miss` | 已完成 | `server/src/modules/delegation/target-token-exchange.service.ts` | `server/test/delegation-token-broker.service.test.ts`, `server/test/delegation.service.test.ts` |
+| 缓存命中授权重校验 | 已完成 | `server/src/modules/delegation/target-token-exchange.service.ts` | `server/test/delegation-cache-authorization.test.ts`, `server/test/delegation.service.test.ts` |
+| Redis 缓存故障降级 | 已完成 | `server/src/modules/delegation/delegation-token-broker.service.ts` | `server/test/delegation-token-broker.service.test.ts` |
 
 ## 3. Admin 管理面
 
 | 项目 | 状态 | 实现位置 | 测试 |
 |------|------|----------|------|
-| Operator account 管理 | 已完成 | `operator_accounts`, `operator_roles`, `src/modules/auth` | `test/auth-binding.service.test.ts`, `test/shared-infra.test.ts` |
-| Application 与 Secret 管理 | 已完成 | `src/modules/admin/applications` | `test/applications.service.test.ts`, `test/admin-services.test.ts` |
+| Operator account 管理 | 已完成 | `operator_accounts`, `operator_roles`, `server/src/modules/auth` | `server/test/auth-binding.service.test.ts`, `server/test/shared-infra.test.ts` |
+| Application 与 Secret 管理 | 已完成 | `server/src/modules/admin/applications` | `server/test/applications.service.test.ts`, `server/test/admin-services.test.ts` |
 | Application 管理产品 UI | 已完成 | `apps/admin-web/features/applications` | `apps/admin-web/features/applications/*.test.tsx` |
-| 可查看的加密 App Secret | 已完成 | `src/modules/admin/applications`, `prisma/schema.prisma` | `test/applications.service.test.ts`, `apps/admin-web/components/management/secret-field.test.tsx` |
-| Application 逻辑删除 | 已完成 | `src/modules/admin/applications`, `apps/admin-web/features/applications` | `test/applications.service.test.ts`, `apps/admin-web/features/applications/application-detail-page.test.tsx` |
-| Agent 管理 API | 已完成 | `src/modules/admin/agents` | `test/agents.service.test.ts` |
+| 可查看的加密 App Secret | 已完成 | `server/src/modules/admin/applications`, `server/prisma/schema.prisma` | `server/test/applications.service.test.ts`, `apps/admin-web/components/management/secret-field.test.tsx` |
+| Application 逻辑删除 | 已完成 | `server/src/modules/admin/applications`, `apps/admin-web/features/applications` | `server/test/applications.service.test.ts`, `apps/admin-web/features/applications/application-detail-page.test.tsx` |
+| Agent 管理 API | 已完成 | `server/src/modules/admin/agents` | `server/test/agents.service.test.ts` |
 | Agent 管理产品 UI | 已完成 | `apps/admin-web/features/agents` | `apps/admin-web/features/agents/*.test.tsx` |
-| 系统生成 Agent ID | 已完成 | `src/modules/admin/agents` | `test/agents.service.test.ts` |
-| Agent 逻辑删除 | 已完成 | `src/modules/admin/agents`, `apps/admin-web/features/agents` | `test/agents.service.test.ts`, `apps/admin-web/features/agents/agent-detail-page.test.tsx` |
-| Runtime Registration 管理 | 已完成 | `src/modules/admin/runtimes` | `test/agents.service.test.ts`, 构建检查 |
-| Caller Credential 管理 | 已完成 | `src/modules/admin/caller-credentials` | `test/admin-and-security.service.test.ts` |
-| Target Resource 管理 | 已完成 | `src/modules/admin/target-resources` | `test/admin-services.test.ts` |
-| Target Connection 管理 | 已完成 | `src/modules/admin/target-connections` | `test/admin-services.test.ts`, `apps/admin-web/features/resources/resource-config.test.ts` |
-| Access Grant 管理 | 已完成 | `src/modules/admin/access-grants` | `test/admin-services.test.ts`, `apps/admin-web/features/resources/resource-config.test.ts` |
-| Audit 查询 | 已完成 | `src/modules/admin/audit-events` | `test/user-consents-and-audit-controller.test.ts` |
-| Key rotation 生命周期 | 已完成 | `src/modules/admin/keys` | `test/key-rotation-and-target.test.ts` |
-| Admin role 分配 | 已完成 | `prisma/schema.prisma` `OperatorRole`, `scripts/seed.ts` | `test/shared-infra.test.ts` |
-| Admin JWT guard | 已完成 | `src/shared/admin/admin-auth.guard.ts` | `test/shared-infra.test.ts` |
+| 系统生成 Agent ID | 已完成 | `server/src/modules/admin/agents` | `server/test/agents.service.test.ts` |
+| Agent 逻辑删除 | 已完成 | `server/src/modules/admin/agents`, `apps/admin-web/features/agents` | `server/test/agents.service.test.ts`, `apps/admin-web/features/agents/agent-detail-page.test.tsx` |
+| Runtime Registration 管理 | 已完成 | `server/src/modules/admin/runtimes` | `server/test/agents.service.test.ts`, 构建检查 |
+| Caller Credential 管理 | 已完成 | `server/src/modules/admin/caller-credentials` | `server/test/admin-and-security.service.test.ts` |
+| Target Resource 管理 | 已完成 | `server/src/modules/admin/target-resources` | `server/test/admin-services.test.ts` |
+| Target Connection 管理 | 已完成 | `server/src/modules/admin/target-connections` | `server/test/admin-services.test.ts`, `apps/admin-web/features/resources/resource-config.test.ts` |
+| Access Grant 管理 | 已完成 | `server/src/modules/admin/access-grants` | `server/test/admin-services.test.ts`, `apps/admin-web/features/resources/resource-config.test.ts` |
+| Audit 查询 | 已完成 | `server/src/modules/admin/audit-events` | `server/test/user-consents-and-audit-controller.test.ts` |
+| Key rotation 生命周期 | 已完成 | `server/src/modules/admin/keys` | `server/test/key-rotation-and-target.test.ts` |
+| Admin role 分配 | 已完成 | `server/prisma/schema.prisma` `OperatorRole`, `server/scripts/seed.ts` | `server/test/shared-infra.test.ts` |
+| Admin JWT guard | 已完成 | `server/src/shared/admin/admin-auth.guard.ts` | `server/test/shared-infra.test.ts` |
 | Admin UI BFF session | 已完成 | `apps/admin-web/app/api/auth/*`, `apps/admin-web/lib/server/session.ts` | `apps/admin-web` Vitest suite |
 | Admin Web V1 应用 | 已完成 | `apps/admin-web` | `pnpm --filter @authany/admin-web test` |
 
@@ -62,24 +62,24 @@
 
 | 项目 | 状态 | 实现位置 | 测试 |
 |------|------|----------|------|
-| 带 `kid` 的 RS256 签名 | 已完成 | `src/shared/security/token-signer.service.ts` | `test/shared-infra.test.ts`, `test/key-rotation-and-target.test.ts` |
-| 历史 JWKS 验签窗口 | 已完成 | `src/shared/security/token-signer.service.ts`，未知 `kid` 拒绝，过期 retired key 拒绝 | `test/key-rotation-and-target.test.ts` |
-| Secret hash | 已完成 | `src/shared/security/hash.service.ts` | `test/hash.service.test.ts` |
-| Refresh token hash | 已完成 | `src/modules/oidc/oidc.service.ts` | `test/oidc.service.test.ts` |
-| Caller Credential hash | 已完成 | `src/modules/admin/caller-credentials` | `test/admin-and-security.service.test.ts` |
-| 限流 | 已完成 | `src/shared/rate-limit/rate-limit.service.ts` | `test/rate-limit-and-audit.test.ts` |
-| Metrics 与告警 | 已完成 | `src/shared/metrics/metrics.service.ts` | `test/admin-and-security.service.test.ts`, `test/rate-limit-and-audit.test.ts` |
-| Health / readiness | 已完成 | `src/shared/health/health.controller.ts` | 构建覆盖；有数据库环境时可补 HTTP e2e |
-| Redis fallback | 已完成 | `src/shared/redis/redis.service.ts` | `test/shared-infra.test.ts` |
-| Audit trail | 已完成 | `src/shared/audit/audit.service.ts` | `test/rate-limit-and-audit.test.ts` |
+| 带 `kid` 的 RS256 签名 | 已完成 | `server/src/shared/security/token-signer.service.ts` | `server/test/shared-infra.test.ts`, `server/test/key-rotation-and-target.test.ts` |
+| 历史 JWKS 验签窗口 | 已完成 | `server/src/shared/security/token-signer.service.ts`，未知 `kid` 拒绝，过期 retired key 拒绝 | `server/test/key-rotation-and-target.test.ts` |
+| Secret hash | 已完成 | `server/src/shared/security/hash.service.ts` | `server/test/hash.service.test.ts` |
+| Refresh token hash | 已完成 | `server/src/modules/oidc/oidc.service.ts` | `server/test/oidc.service.test.ts` |
+| Caller Credential hash | 已完成 | `server/src/modules/admin/caller-credentials` | `server/test/admin-and-security.service.test.ts` |
+| 限流 | 已完成 | `server/src/shared/rate-limit/rate-limit.service.ts` | `server/test/rate-limit-and-audit.test.ts` |
+| Metrics 与告警 | 已完成 | `server/src/shared/metrics/metrics.service.ts` | `server/test/admin-and-security.service.test.ts`, `server/test/rate-limit-and-audit.test.ts` |
+| Health / readiness | 已完成 | `server/src/shared/health/health.controller.ts` | 构建覆盖；有数据库环境时可补 HTTP e2e |
+| Redis fallback | 已完成 | `server/src/shared/redis/redis.service.ts` | `server/test/shared-infra.test.ts` |
+| Audit trail | 已完成 | `server/src/shared/audit/audit.service.ts` | `server/test/rate-limit-and-audit.test.ts` |
 
 ## 5. Target Resource 接入
 
 | 项目 | 状态 | 实现位置 | 测试 |
 |------|------|----------|------|
-| Target trust metadata | 已完成 | `src/modules/admin/target-resources/target-resources.service.ts` | `test/admin-services.test.ts` |
-| JWT verification helper | 已完成 | `src/modules/target-verification/target-token-verifier.service.ts` | `test/key-rotation-and-target.test.ts` |
-| Application 与 Agent subject 识别 | 已完成 | `src/modules/target-verification/target-token-verifier.service.ts`, `example/target-service/src/auth.ts` | `test/key-rotation-and-target.test.ts`, `example/target-service` tests |
+| Target trust metadata | 已完成 | `server/src/modules/admin/target-resources/target-resources.service.ts` | `server/test/admin-services.test.ts` |
+| JWT verification helper | 已完成 | `server/src/modules/target-verification/target-token-verifier.service.ts` | `server/test/key-rotation-and-target.test.ts` |
+| Application 与 Agent subject 识别 | 已完成 | `server/src/modules/target-verification/target-token-verifier.service.ts`, `example/target-service/src/auth.ts` | `server/test/key-rotation-and-target.test.ts`, `example/target-service` tests |
 | 本地权限自治 | 边界已完成 | AuthAny 不建模 Target Resource 资源权限 | `specs/08-TARGET-RESOURCE-INTEGRATION.md` |
 
 ## 6. V1 已知边界

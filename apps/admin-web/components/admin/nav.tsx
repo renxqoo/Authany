@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { useI18n } from "@/components/i18n/language-provider";
+import { getAdminNavigation } from "@/lib/admin/navigation";
 import { cn } from "@/lib/utils";
-import { adminV2Navigation } from "@/features/admin-v2/navigation";
 
 export function AdminNav() {
   const pathname = usePathname();
   const { t } = useI18n();
+  const navigation = getAdminNavigation(t);
 
   return (
     <aside className="fixed inset-y-0 left-0 w-80 border-r border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.95),rgba(255,255,255,0.98)_20%,rgba(248,250,252,0.98))] px-6 py-7 backdrop-blur">
@@ -20,13 +21,12 @@ export function AdminNav() {
           </div>
           <div>
             <div className="font-semibold text-slate-950">{t("app.name")}</div>
-            <div className="text-xs uppercase tracking-[0.22em] text-amber-700">Admin UI V2</div>
           </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-500">{t("app.subtitle")}</p>
       </div>
       <nav className="space-y-7">
-        {adminV2Navigation.map((group) => (
+        {navigation.map((group) => (
           <div key={group.title}>
             <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">{group.title}</div>
             <div className="space-y-1.5">

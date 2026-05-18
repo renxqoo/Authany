@@ -5,11 +5,12 @@ import type React from "react";
 import { defaultLocale, localeCookieName, normalizeLocale } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 import { messages } from "@/lib/i18n/messages";
+import { createTranslator, type I18nTranslator } from "@/lib/i18n/translate";
 
 interface I18nContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string, params?: Record<string, string>, fallback?: string) => string;
+  t: I18nTranslator;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -25,11 +26,7 @@ export function I18nProvider({ children, initialLocale }: { children: React.Reac
   const value = useMemo<I18nContextValue>(() => ({
     locale,
     setLocale: (nextLocale) => setLocaleState(normalizeLocale(nextLocale)),
-    t: (key, params, fallback) => {
-      const active = messages[locale] as Record<string, string>;
-      const english = messages.en as Record<string, string>;
-      return interpolate(active[key] ?? fallback ?? english[key] ?? key, params);
-    }
+    t: createTranslator(messages, locale)
   }), [locale]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -41,11 +38,4 @@ export function useI18n() {
     throw new Error("useI18n must be used inside I18nProvider.");
   }
   return context;
-}
-
-function interpolate(template: string, params?: Record<string, string>) {
-  return Object.entries(params ?? {}).reduce(
-    (value, [key, replacement]) => value.replaceAll(`{${key}}`, replacement),
-    template,
-  );
 }

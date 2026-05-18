@@ -29,7 +29,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.95),rgba(255,255,255,0.98)_45%,rgba(240,249,255,0.95))] p-8 shadow-sm">
-        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">Overview</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">{t("dashboard.overview")}</div>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">{t("dashboard.title")}</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{t("dashboard.description")}</p>
       </section>

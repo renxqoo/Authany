@@ -1,15 +1,15 @@
-# AuthAny `src/` 核心服务安全复审残项
+# AuthAny `server/src/` 核心服务安全复审残项
 
-本文档只记录 `src/` 目录中的安全残项。
+本文档只记录 `server/src/` 目录中的安全残项。
 
 范围说明：
 
-- 仅包含 `/Users/wrr/work/authany/src`
+- 仅包含 `/Users/wrr/work/authany/server/src`
 - 不包含：
   - `apps/admin-web`
   - `example/demo-web`
   - `example/target-service`
-  - `scripts`
+  - `server/scripts`
 
 审查目标：
 
@@ -34,8 +34,8 @@
 
 主要集中在：
 
-- `src/modules/delegation`
-- `src/modules/target-verification`
+- `server/src/modules/delegation`
+- `server/src/modules/target-verification`
 
 ---
 
@@ -45,7 +45,7 @@
 
 文件：
 
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts:89)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts:89)
 
 问题描述：
 
@@ -83,7 +83,7 @@
 
 验证：
 
-- `test/delegation.service.test.ts`
+- `server/test/delegation.service.test.ts`
 - 新增用例覆盖 signer 内部异常不再被伪装成认证失败
 
 ---
@@ -92,8 +92,8 @@
 
 文件：
 
-- [src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/src/modules/delegation/delegation-token-broker.service.ts:89)
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts:344)
+- [server/src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/delegation-token-broker.service.ts:89)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts:344)
 
 问题描述：
 
@@ -130,7 +130,7 @@
 
 验证：
 
-- `test/delegation.service.test.ts`
+- `server/test/delegation.service.test.ts`
 - 新增用例覆盖 Redis 读异常下仍签发 token 且强制落状态记录
 
 ---
@@ -141,7 +141,7 @@
 
 文件：
 
-- [src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/src/modules/target-verification/target-token-verifier.service.ts:29)
+- [server/src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/server/src/modules/target-verification/target-token-verifier.service.ts:29)
 
 问题描述：
 
@@ -174,20 +174,20 @@
 
 验证：
 
-- `test/key-rotation-and-target.test.ts`
+- `server/test/key-rotation-and-target.test.ts`
 - 新增 agent/app subject 与 identity 不一致的拒绝用例
 
 ---
 
 ## 4. 当前未计入问题的点
 
-以下内容我在 `src/` 中看过，但没有计入本轮残项：
+以下内容我在 `server/src/` 中看过，但没有计入本轮残项：
 
 ### 4.1 `RateLimitService` 遇到 Redis 故障直接失败
 
 文件：
 
-- [src/shared/rate-limit/rate-limit.service.ts](/Users/wrr/work/authany/src/shared/rate-limit/rate-limit.service.ts:13)
+- [server/src/shared/rate-limit/rate-limit.service.ts](/Users/wrr/work/authany/server/src/shared/rate-limit/rate-limit.service.ts:13)
 
 原因：
 
@@ -198,7 +198,7 @@
 
 文件：
 
-- [src/shared/audit/audit.service.ts](/Users/wrr/work/authany/src/shared/audit/audit.service.ts:25)
+- [server/src/shared/audit/audit.service.ts](/Users/wrr/work/authany/server/src/shared/audit/audit.service.ts:25)
 
 原因：
 
@@ -209,7 +209,7 @@
 
 文件：
 
-- [src/shared/security/current-user.service.ts](/Users/wrr/work/authany/src/shared/security/current-user.service.ts:20)
+- [server/src/shared/security/current-user.service.ts](/Users/wrr/work/authany/server/src/shared/security/current-user.service.ts:20)
 
 原因：
 
@@ -230,7 +230,7 @@
 
 ## 6. 当前状态
 
-本文件当前可视为 `src/` 核心服务这一轮残项的修复完成记录。
+本文件当前可视为 `server/src/` 核心服务这一轮残项的修复完成记录。
 
 已执行验证：
 

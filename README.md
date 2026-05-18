@@ -85,7 +85,7 @@ Traditional OAuth servers solve user login. AuthAny goes further:
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/authany.git
+git clone https://github.com/renxqoo/Anthany.git
 cd authany
 pnpm install
 ```
@@ -93,17 +93,17 @@ pnpm install
 ### 2. Configure Environment
 
 ```bash
-cp .env.example .env
+cp server/.env.example server/.env
 ```
 
-Edit root `.env` for the AuthAny API service. If you also run Admin Web or the example apps, copy their own env examples separately:
+Edit `server/.env` for the AuthAny API service. If you also run Admin Web or the example apps, copy their own env examples separately:
 
 ```bash
 cp apps/admin-web/.env.example apps/admin-web/.env.local
-cp example/.env.example example/.env.local
+cp example/.env.example example/.env
 ```
 
-At minimum, set these root `.env` values:
+At minimum, set these `server/.env` values:
 
 ```bash
 AUTHANY_BASE_URL=http://127.0.0.1:3000
@@ -126,7 +126,14 @@ pnpm prisma:migrate:dev
 pnpm seed
 ```
 
-This creates the first operator account, signs an RSA key pair, and registers the admin web client.
+Before running `pnpm seed`, set `SEED_CLIENT_SECRET`, `SEED_ADMIN_CLIENT_SECRET`, and `SEED_CALLER_CREDENTIAL` in `server/.env`.
+
+The seed script only prepares demo-facing data for the workspace: OAuth clients, demo agent, runtime registration, caller credential, target resource, target connections, and access grants. It does not create the first operator account and does not create signing keys.
+
+Admin login requires both:
+
+- a pre-created operator account in the AuthAny database
+- at least one active signing key in the `key_rotation_records` table
 
 ### 5. Start the Server
 
@@ -167,41 +174,21 @@ pnpm dev:all
 
 ```
 authany/
-├── src/                          # AuthAny core server (NestJS + Fastify)
-│   ├── main.ts                   # Bootstrap entry point
-│   ├── app.module.ts             # Root module (13 sub-modules)
-│   ├── modules/
-│   │   ├── auth/                 # Login (API + hosted login page)
-│   │   ├── oidc/                 # OAuth 2.0 / OIDC full implementation
-│   │   ├── delegation/           # Two-phase token delegation
-│   │   ├── admin/                # Admin CRUD API
-│   │   └── target-verification/  # Target token verification
-│   └── shared/
-│       ├── config/               # Zod-validated env config
-│       ├── prisma/               # Prisma ORM
-│       ├── redis/                # Redis client
-│       ├── security/             # JWT signing, hashing, session, CSRF, encryption
-│       ├── audit/                # Audit logging
-│       ├── metrics/              # In-memory metrics
-│       ├── rate-limit/           # Sliding-window rate limiting
-│       ├── admin/                # Admin auth guard
-│       ├── health/               # Health & readiness probes
-│       └── http/                 # HTTP utilities (filters, responses, headers)
+├── server/                       # AuthAny core server package
+│   ├── src/                      # NestJS + Fastify source code
+│   ├── prisma/                   # Database schema and Prisma assets
+│   ├── scripts/                  # Seeder and security scripts
+│   ├── test/                     # Server tests
+│   ├── package.json
+│   └── .env.example
 ├── apps/
 │   └── admin-web/                # Admin console (Next.js)
 ├── example/
 │   ├── demo-web/                 # Demo business app (Next.js)
 │   └── target-service/           # Demo target resource (Fastify)
-├── prisma/
-│   └── schema.prisma             # Database schema (15 tables)
-├── scripts/
-│   ├── seed.ts                   # Database seeder
-│   ├── security-verify.ts        # Security audit verification
-│   ├── security-tighten-data.ts  # Data tightening script
-│   └── security-attack-harness.ts # Attack simulation harness
 ├── docs/                         # Documentation
 ├── specs/                        # Product requirements & specifications
-└── test/                         # Integration tests
+└── demand/                       # Planning and rewrite notes
 ```
 
 ## Integration Guide
@@ -338,9 +325,10 @@ All admin endpoints require a valid admin JWT (scope: `authany.admin`). See [doc
 
 Configuration is split by runtime boundary:
 
-- Root AuthAny API service: [.env.example](.env.example)
+- Root monorepo env index: [.env.example](.env.example)
+- AuthAny API service: [server/.env.example](server/.env.example)
 - Admin Web: [apps/admin-web/.env.example](apps/admin-web/.env.example)
-- Example apps and example target resource service: [example/.env.example](example/.env.example)
+- Example apps and example target resource service shared config: [example/.env.example](example/.env.example)
 
 ### Core
 
@@ -401,7 +389,7 @@ AuthAny uses 15 tables with multi-tenant isolation. Key entities:
 - **KeyRotationRecord** -- RSA signing key lifecycle
 - **AuditEvent** -- Comprehensive audit trail
 
-See [prisma/schema.prisma](prisma/schema.prisma) for the full schema.
+See [server/prisma/schema.prisma](server/prisma/schema.prisma) for the full schema.
 
 ## Tech Stack
 
@@ -423,9 +411,10 @@ See [prisma/schema.prisma](prisma/schema.prisma) for the full schema.
 | [docs/integration-guide.md](docs/integration-guide.md) | Integration guide with code examples |
 | [docs/src-deep-analysis.md](docs/src-deep-analysis.md) | Source code deep analysis       |
 | [specs/](specs/)                               | Product requirements & specifications |
-| [.env.example](.env.example)                   | AuthAny API service environment reference |
+| [.env.example](.env.example)                   | Monorepo environment index |
+| [server/.env.example](server/.env.example)     | AuthAny API service environment reference |
 | [apps/admin-web/.env.example](apps/admin-web/.env.example) | Admin Web environment reference |
-| [example/.env.example](example/.env.example)   | Example apps and target service environment reference |
+| [example/.env.example](example/.env.example)   | Shared environment reference for `example/demo-web` and `example/target-service` |
 
 ## License
 

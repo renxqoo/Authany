@@ -17,7 +17,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between border-b border-slate-200/80 bg-white/75 px-10 backdrop-blur">
       <div>
-        <div className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Control Plane</div>
+        <div className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">{t("topbar.eyebrow")}</div>
         <div className="mt-1 text-lg font-semibold text-slate-950">{t("topbar.title")}</div>
         <div className="mt-1 text-xs text-slate-500">{t("topbar.note")}</div>
       </div>

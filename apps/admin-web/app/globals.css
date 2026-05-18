@@ -3,7 +3,6 @@
 @config "../tailwind.config.ts";
 @source "../app/**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
-@source "../features/**/*.{ts,tsx}";
 @source "../lib/**/*.{ts,tsx}";
 
 :root {

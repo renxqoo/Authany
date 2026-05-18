@@ -14,12 +14,12 @@
 
 本轮重点覆盖：
 
-- `src/modules/delegation`
-- `src/modules/target-verification`
+- `server/src/modules/delegation`
+- `server/src/modules/target-verification`
 - `example/target-service`
 - `apps/admin-web`
 - `example/demo-web`
-- `scripts/seed.ts`
+- `server/scripts/seed.ts`
 
 审查重点：
 
@@ -114,8 +114,8 @@
 
 文件：
 
-- [src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/src/modules/delegation/delegation-token-broker.service.ts:89)
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts:344)
+- [server/src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/delegation-token-broker.service.ts:89)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts:344)
 
 问题描述：
 
@@ -146,7 +146,7 @@
 
 文件：
 
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts:89)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts:89)
 
 问题描述：
 
@@ -205,7 +205,7 @@
 
 文件：
 
-- [src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/src/modules/target-verification/target-token-verifier.service.ts:29)
+- [server/src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/server/src/modules/target-verification/target-token-verifier.service.ts:29)
 
 问题描述：
 
@@ -275,8 +275,8 @@
 
 文件：
 
-- [scripts/seed.ts](/Users/wrr/work/authany/scripts/seed.ts:41)
-- [scripts/seed.ts](/Users/wrr/work/authany/scripts/seed.ts:177)
+- [server/scripts/seed.ts](/Users/wrr/work/authany/server/scripts/seed.ts:41)
+- [server/scripts/seed.ts](/Users/wrr/work/authany/server/scripts/seed.ts:177)
 
 问题描述：
 
@@ -308,8 +308,8 @@
 
 文件：
 
-- [src/shared/security/current-user.service.ts](/Users/wrr/work/authany/src/shared/security/current-user.service.ts:20)
-- [src/shared/security/login-session.service.ts](/Users/wrr/work/authany/src/shared/security/login-session.service.ts:28)
+- [server/src/shared/security/current-user.service.ts](/Users/wrr/work/authany/server/src/shared/security/current-user.service.ts:20)
+- [server/src/shared/security/login-session.service.ts](/Users/wrr/work/authany/server/src/shared/security/login-session.service.ts:28)
 
 问题描述：
 
@@ -339,7 +339,7 @@
 
 文件：
 
-- [src/shared/rate-limit/rate-limit.service.ts](/Users/wrr/work/authany/src/shared/rate-limit/rate-limit.service.ts:13)
+- [server/src/shared/rate-limit/rate-limit.service.ts](/Users/wrr/work/authany/server/src/shared/rate-limit/rate-limit.service.ts:13)
 
 原因：
 
@@ -351,7 +351,7 @@
 
 文件：
 
-- [src/shared/audit/audit.service.ts](/Users/wrr/work/authany/src/shared/audit/audit.service.ts:25)
+- [server/src/shared/audit/audit.service.ts](/Users/wrr/work/authany/server/src/shared/audit/audit.service.ts:25)
 
 原因：
 

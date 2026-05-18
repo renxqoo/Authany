@@ -1,14 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(pnpm dev)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "sequential-thinking",
     "context7",
     "tavily",
     "shadcn"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

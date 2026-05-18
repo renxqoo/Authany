@@ -25,28 +25,28 @@
 
 新增/关键修复文件：
 
-- [src/modules/delegation/caller-credential.service.ts](/Users/wrr/work/authany/src/modules/delegation/caller-credential.service.ts)
-- [src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/src/modules/target-verification/target-token-verifier.service.ts)
-- [src/shared/health/health.controller.ts](/Users/wrr/work/authany/src/shared/health/health.controller.ts)
-- [src/modules/admin/access-grants/access-grants.service.ts](/Users/wrr/work/authany/src/modules/admin/access-grants/access-grants.service.ts)
-- [src/modules/admin/target-connections/target-connections.service.ts](/Users/wrr/work/authany/src/modules/admin/target-connections/target-connections.service.ts)
-- [src/modules/admin/target-resources/target-resources.service.ts](/Users/wrr/work/authany/src/modules/admin/target-resources/target-resources.service.ts)
-- [src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/src/modules/delegation/delegation-token-broker.service.ts)
-- [src/modules/delegation/replay-protection.service.ts](/Users/wrr/work/authany/src/modules/delegation/replay-protection.service.ts)
-- [src/modules/oidc/oidc.service.ts](/Users/wrr/work/authany/src/modules/oidc/oidc.service.ts)
-- [src/shared/admin/admin-auth.guard.ts](/Users/wrr/work/authany/src/shared/admin/admin-auth.guard.ts)
-- [src/shared/http/http-exception.filter.ts](/Users/wrr/work/authany/src/shared/http/http-exception.filter.ts)
-- [src/shared/http/request-context.ts](/Users/wrr/work/authany/src/shared/http/request-context.ts)
-- [src/shared/config/app-config.service.ts](/Users/wrr/work/authany/src/shared/config/app-config.service.ts)
-- [prisma/schema.prisma](/Users/wrr/work/authany/prisma/schema.prisma)
-- [scripts/security-tighten-data.ts](/Users/wrr/work/authany/scripts/security-tighten-data.ts)
-- [scripts/seed.ts](/Users/wrr/work/authany/scripts/seed.ts)
+- [server/src/modules/delegation/caller-credential.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/caller-credential.service.ts)
+- [server/src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/server/src/modules/target-verification/target-token-verifier.service.ts)
+- [server/src/shared/health/health.controller.ts](/Users/wrr/work/authany/server/src/shared/health/health.controller.ts)
+- [server/src/modules/admin/access-grants/access-grants.service.ts](/Users/wrr/work/authany/server/src/modules/admin/access-grants/access-grants.service.ts)
+- [server/src/modules/admin/target-connections/target-connections.service.ts](/Users/wrr/work/authany/server/src/modules/admin/target-connections/target-connections.service.ts)
+- [server/src/modules/admin/target-resources/target-resources.service.ts](/Users/wrr/work/authany/server/src/modules/admin/target-resources/target-resources.service.ts)
+- [server/src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/delegation-token-broker.service.ts)
+- [server/src/modules/delegation/replay-protection.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/replay-protection.service.ts)
+- [server/src/modules/oidc/oidc.service.ts](/Users/wrr/work/authany/server/src/modules/oidc/oidc.service.ts)
+- [server/src/shared/admin/admin-auth.guard.ts](/Users/wrr/work/authany/server/src/shared/admin/admin-auth.guard.ts)
+- [server/src/shared/http/http-exception.filter.ts](/Users/wrr/work/authany/server/src/shared/http/http-exception.filter.ts)
+- [server/src/shared/http/request-context.ts](/Users/wrr/work/authany/server/src/shared/http/request-context.ts)
+- [server/src/shared/config/app-config.service.ts](/Users/wrr/work/authany/server/src/shared/config/app-config.service.ts)
+- [server/prisma/schema.prisma](/Users/wrr/work/authany/server/prisma/schema.prisma)
+- [server/scripts/security-tighten-data.ts](/Users/wrr/work/authany/server/scripts/security-tighten-data.ts)
+- [server/scripts/seed.ts](/Users/wrr/work/authany/server/scripts/seed.ts)
 - [apps/admin-web/features/admin-v2/resource-definitions.tsx](/Users/wrr/work/authany/apps/admin-web/features/admin-v2/resource-definitions.tsx)
 - [apps/admin-web/features/admin-v2/resource-display.tsx](/Users/wrr/work/authany/apps/admin-web/features/admin-v2/resource-display.tsx)
 
 ---
 
-本文档记录 2026-05-18 对 `src/` 的专项静态审查结果。
+本文档记录 2026-05-18 对 `server/src/` 的专项静态审查结果。
 
 审查重点不是一般代码风格，而是以下高风险逻辑：
 
@@ -68,12 +68,12 @@
 
 本次覆盖：
 
-- `src/shared`
-- `src/modules/auth`
-- `src/modules/oidc`
-- `src/modules/admin`
-- `src/modules/delegation`
-- `src/modules/target-verification`
+- `server/src/shared`
+- `server/src/modules/auth`
+- `server/src/modules/oidc`
+- `server/src/modules/admin`
+- `server/src/modules/delegation`
+- `server/src/modules/target-verification`
 
 审查方式：
 
@@ -115,10 +115,10 @@
 
 文件：
 
-- [src/modules/delegation/caller-credential.service.ts](/Users/wrr/work/authany/src/modules/delegation/caller-credential.service.ts)
-- [src/modules/delegation/requester-token.service.ts](/Users/wrr/work/authany/src/modules/delegation/requester-token.service.ts)
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts)
-- [src/modules/delegation/delegation-policy.service.ts](/Users/wrr/work/authany/src/modules/delegation/delegation-policy.service.ts)
+- [server/src/modules/delegation/caller-credential.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/caller-credential.service.ts)
+- [server/src/modules/delegation/requester-token.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/requester-token.service.ts)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts)
+- [server/src/modules/delegation/delegation-policy.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/delegation-policy.service.ts)
 
 问题描述：
 
@@ -152,8 +152,8 @@
 
 文件：
 
-- [src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/src/modules/target-verification/target-token-verifier.service.ts)
-- [prisma/schema.prisma](/Users/wrr/work/authany/prisma/schema.prisma)
+- [server/src/modules/target-verification/target-token-verifier.service.ts](/Users/wrr/work/authany/server/src/modules/target-verification/target-token-verifier.service.ts)
+- [server/prisma/schema.prisma](/Users/wrr/work/authany/server/prisma/schema.prisma)
 
 问题描述：
 
@@ -185,7 +185,7 @@
 
 文件：
 
-- [src/shared/health/health.controller.ts](/Users/wrr/work/authany/src/shared/health/health.controller.ts)
+- [server/src/shared/health/health.controller.ts](/Users/wrr/work/authany/server/src/shared/health/health.controller.ts)
 
 问题描述：
 
@@ -215,7 +215,7 @@
 
 文件：
 
-- [src/modules/admin/access-grants/access-grants.service.ts](/Users/wrr/work/authany/src/modules/admin/access-grants/access-grants.service.ts)
+- [server/src/modules/admin/access-grants/access-grants.service.ts](/Users/wrr/work/authany/server/src/modules/admin/access-grants/access-grants.service.ts)
 
 问题描述：
 
@@ -248,7 +248,7 @@
 
 文件：
 
-- [src/modules/admin/target-connections/target-connections.service.ts](/Users/wrr/work/authany/src/modules/admin/target-connections/target-connections.service.ts)
+- [server/src/modules/admin/target-connections/target-connections.service.ts](/Users/wrr/work/authany/server/src/modules/admin/target-connections/target-connections.service.ts)
 
 问题描述：
 
@@ -280,7 +280,7 @@
 
 文件：
 
-- [src/shared/config/app-config.service.ts](/Users/wrr/work/authany/src/shared/config/app-config.service.ts)
+- [server/src/shared/config/app-config.service.ts](/Users/wrr/work/authany/server/src/shared/config/app-config.service.ts)
 
 问题描述：
 
@@ -315,7 +315,7 @@
 
 文件：
 
-- [src/modules/auth/hosted-auth.controller.ts](/Users/wrr/work/authany/src/modules/auth/hosted-auth.controller.ts)
+- [server/src/modules/auth/hosted-auth.controller.ts](/Users/wrr/work/authany/server/src/modules/auth/hosted-auth.controller.ts)
 
 问题描述：
 
@@ -350,7 +350,7 @@
 
 文件：
 
-- [src/shared/admin/admin-auth.guard.ts](/Users/wrr/work/authany/src/shared/admin/admin-auth.guard.ts)
+- [server/src/shared/admin/admin-auth.guard.ts](/Users/wrr/work/authany/server/src/shared/admin/admin-auth.guard.ts)
 
 问题描述：
 
@@ -384,7 +384,7 @@
 
 文件：
 
-- [src/modules/oidc/oidc.service.ts](/Users/wrr/work/authany/src/modules/oidc/oidc.service.ts)
+- [server/src/modules/oidc/oidc.service.ts](/Users/wrr/work/authany/server/src/modules/oidc/oidc.service.ts)
 
 问题描述：
 
@@ -415,8 +415,8 @@
 
 文件：
 
-- [src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/src/modules/delegation/delegation-token-broker.service.ts)
-- [src/shared/redis/redis.service.ts](/Users/wrr/work/authany/src/shared/redis/redis.service.ts)
+- [server/src/modules/delegation/delegation-token-broker.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/delegation-token-broker.service.ts)
+- [server/src/shared/redis/redis.service.ts](/Users/wrr/work/authany/server/src/shared/redis/redis.service.ts)
 
 问题描述：
 
@@ -448,8 +448,8 @@
 
 文件：
 
-- [src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/src/modules/delegation/target-token-exchange.service.ts)
-- [src/modules/delegation/replay-protection.service.ts](/Users/wrr/work/authany/src/modules/delegation/replay-protection.service.ts)
+- [server/src/modules/delegation/target-token-exchange.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/target-token-exchange.service.ts)
+- [server/src/modules/delegation/replay-protection.service.ts](/Users/wrr/work/authany/server/src/modules/delegation/replay-protection.service.ts)
 
 问题描述：
 
@@ -476,7 +476,7 @@
 
 文件：
 
-- [src/modules/admin/audit-events/audit-events.controller.ts](/Users/wrr/work/authany/src/modules/admin/audit-events/audit-events.controller.ts)
+- [server/src/modules/admin/audit-events/audit-events.controller.ts](/Users/wrr/work/authany/server/src/modules/admin/audit-events/audit-events.controller.ts)
 
 问题描述：
 
@@ -505,7 +505,7 @@
 
 文件：
 
-- [src/modules/oidc/oidc.controller.ts](/Users/wrr/work/authany/src/modules/oidc/oidc.controller.ts)
+- [server/src/modules/oidc/oidc.controller.ts](/Users/wrr/work/authany/server/src/modules/oidc/oidc.controller.ts)
 
 问题描述：
 
@@ -531,7 +531,7 @@
 
 文件：
 
-- [src/modules/admin/target-resources/target-resources.service.ts](/Users/wrr/work/authany/src/modules/admin/target-resources/target-resources.service.ts)
+- [server/src/modules/admin/target-resources/target-resources.service.ts](/Users/wrr/work/authany/server/src/modules/admin/target-resources/target-resources.service.ts)
 
 问题描述：
 
@@ -560,7 +560,7 @@
 
 文件：
 
-- [src/shared/http/http-exception.filter.ts](/Users/wrr/work/authany/src/shared/http/http-exception.filter.ts)
+- [server/src/shared/http/http-exception.filter.ts](/Users/wrr/work/authany/server/src/shared/http/http-exception.filter.ts)
 
 问题描述：
 
@@ -587,7 +587,7 @@
 
 文件：
 
-- [src/shared/http/request-context.ts](/Users/wrr/work/authany/src/shared/http/request-context.ts)
+- [server/src/shared/http/request-context.ts](/Users/wrr/work/authany/server/src/shared/http/request-context.ts)
 
 问题描述：
 
@@ -619,7 +619,7 @@
 
 文件：
 
-- [src/modules/auth/auth.service.ts](/Users/wrr/work/authany/src/modules/auth/auth.service.ts)
+- [server/src/modules/auth/auth.service.ts](/Users/wrr/work/authany/server/src/modules/auth/auth.service.ts)
 
 说明：
 
@@ -636,7 +636,7 @@
 
 文件：
 
-- [src/modules/auth/hosted-login.ts](/Users/wrr/work/authany/src/modules/auth/hosted-login.ts)
+- [server/src/modules/auth/hosted-login.ts](/Users/wrr/work/authany/server/src/modules/auth/hosted-login.ts)
 
 说明：
 
@@ -653,7 +653,7 @@
 
 文件：
 
-- [src/shared/security/login-session.service.ts](/Users/wrr/work/authany/src/shared/security/login-session.service.ts)
+- [server/src/shared/security/login-session.service.ts](/Users/wrr/work/authany/server/src/shared/security/login-session.service.ts)
 
 说明：
 
@@ -670,8 +670,8 @@
 
 文件：
 
-- [src/shared/security/csrf.service.ts](/Users/wrr/work/authany/src/shared/security/csrf.service.ts)
-- [src/shared/security/token-status.service.ts](/Users/wrr/work/authany/src/shared/security/token-status.service.ts)
+- [server/src/shared/security/csrf.service.ts](/Users/wrr/work/authany/server/src/shared/security/csrf.service.ts)
+- [server/src/shared/security/token-status.service.ts](/Users/wrr/work/authany/server/src/shared/security/token-status.service.ts)
 
 说明：
 
@@ -862,15 +862,15 @@
 真实证据：
 
 - 使用真实管理员会话调用：
-  - `GET /api/admin/audit-events?limit=abc`
+  - `GET /api/v1/admin/audit-events?limit=abc`
   - 返回 `200` 且正常返回结果集
   - 说明非法 `limit` 被静默回退，而不是返回 `400`
 - 调用：
-  - `GET /api/admin/audit-events?from=not-a-date`
+  - `GET /api/v1/admin/audit-events?from=not-a-date`
   - 返回 `500 internal_error`
   - 说明非法日期没有在控制器层显式拦截
 - 调用：
-  - `GET /api/admin/audit-events?event_type=&operator_id=`
+  - `GET /api/v1/admin/audit-events?event_type=&operator_id=`
   - 返回 `200` 且结果集未缩小
   - 说明空字符串过滤值被当成 `undefined`，过滤静默失效
 
@@ -951,7 +951,7 @@
 
 执行脚本：
 
-- [scripts/security-tighten-data.ts](/Users/wrr/work/authany/scripts/security-tighten-data.ts)
+- [server/scripts/security-tighten-data.ts](/Users/wrr/work/authany/server/scripts/security-tighten-data.ts)
 
 执行结果：
 

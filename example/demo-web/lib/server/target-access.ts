@@ -223,7 +223,7 @@ export function buildRequesterTokenPayload(
     ...common,
     principal_type: "agent",
     agent_id: env.agentId,
-    runtime_id: env.runtimeId
+    ...(env.runtimeId ? { runtime_id: env.runtimeId } : {})
   };
 }
 

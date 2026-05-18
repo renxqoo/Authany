@@ -54,6 +54,16 @@ describe("target access helpers", () => {
     });
   });
 
+  it("omits runtime_id when the demo runtime is not configured", () => {
+    restoreEnv({ DEMO_RUNTIME_ID: undefined });
+
+    expect(buildRequesterTokenPayload("agent")).toMatchObject({
+      principal_type: "agent",
+      agent_id: "agent_demo"
+    });
+    expect(buildRequesterTokenPayload("agent")).not.toHaveProperty("runtime_id");
+  });
+
   it("returns an actionable error when session has no operator subject", async () => {
     await expect(accessTargetResource({
       accessToken: "access",
