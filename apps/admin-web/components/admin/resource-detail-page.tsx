@@ -12,6 +12,7 @@ import { getResourceDefinition } from "@/lib/admin/resource-definitions";
 import { AdminResourceApiError, adminResourceFetch } from "@/lib/admin/resource-client";
 import type { ResourceAction, ResourceKey } from "@/lib/admin/types";
 import { readValue, renderResourceValue } from "./resource-display";
+import { AdminHero, AdminMetric, AdminPageShell } from "./page-shell";
 import { ResourceConfirmDialog } from "./resource-confirm-dialog";
 import { ResourceFormDialog } from "./resource-form-dialog";
 
@@ -88,16 +89,10 @@ export function AdminResourceDetailPage({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.98),rgba(255,255,255,0.98)_45%,rgba(255,251,235,0.9))] p-8 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <Link className="text-sm font-medium text-sky-700 hover:text-sky-900" href={definition.path}>← {t("admin.backToList", { title: definition.title })}</Link>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">{definition.titleValue(record)}</h1>
-            {definition.subtitle?.(record) ? <div className="mt-3 text-sm text-slate-500">{definition.subtitle(record)}</div> : null}
-            {headerStatus ? <div className="mt-4">{renderResourceValue(headerStatus, "status", t)}</div> : null}
-          </div>
-          <div className="flex flex-wrap gap-3">
+    <AdminPageShell>
+      <AdminHero
+        actions={(
+          <>
             {(definition.detailActions ?? []).map((action) => (
               <Button key={action.label} onClick={() => setActiveAction(action)} type="button" variant={action.variant ?? "secondary"}>
                 {action.label}
@@ -106,9 +101,22 @@ export function AdminResourceDetailPage({
             {definition.editFields ? (
               <Button onClick={() => setEditing(true)} type="button" variant="secondary">{t("common.edit")}</Button>
             ) : null}
-          </div>
-        </div>
-      </section>
+          </>
+        )}
+        description={definition.subtitle?.(record) ?? definition.description}
+        eyebrow={t("admin.badge")}
+        title={(
+          <>
+            <Link className="text-sm font-medium text-sky-700 hover:text-sky-900" href={definition.path}>
+              ← {t("admin.backToList", { title: definition.title })}
+            </Link>
+            <span className="mt-4 block">{definition.titleValue(record)}</span>
+          </>
+        )}
+      >
+        <AdminMetric label={t("resource.recordId")} value={id} />
+        {headerStatus ? <AdminMetric label={t("field.status")} value={renderResourceValue(headerStatus, "status", t)} /> : null}
+      </AdminHero>
 
       {error ? <Alert>{error}</Alert> : null}
 
@@ -117,12 +125,13 @@ export function AdminResourceDetailPage({
           <Card className="rounded-[28px]" key={section.title}>
             <CardHeader>
               <CardTitle>{section.title}</CardTitle>
+              {section.description ? <p className="mt-2 text-sm leading-6 text-slate-500">{section.description}</p> : null}
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
               {section.fields.map((field) => (
-                <div className="space-y-2" key={field.label}>
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{field.label}</div>
-                  <div className="text-sm text-slate-700">{renderResourceValue(readValue(record, field), field.kind, t)}</div>
+                <div className="space-y-2 rounded-[22px] border border-slate-100/90 bg-slate-50/70 p-4" key={field.label}>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{field.label}</div>
+                  <div className="text-sm leading-6 text-slate-700">{renderResourceValue(readValue(record, field), field.kind, t)}</div>
                 </div>
               ))}
             </CardContent>
@@ -133,7 +142,7 @@ export function AdminResourceDetailPage({
       {definition.extraSections?.(record, load)}
 
       {definition.dangerAction ? (
-        <Card className="rounded-[28px] border-red-200 bg-red-50/50">
+        <Card className="rounded-[28px] border-red-200/80 bg-[linear-gradient(180deg,rgba(254,242,242,0.92),rgba(254,226,226,0.88))]">
           <CardHeader>
             <CardTitle className="text-red-700">{t("admin.dangerZone")}</CardTitle>
           </CardHeader>
@@ -170,6 +179,6 @@ export function AdminResourceDetailPage({
           title={activeAction.confirmTitle ?? activeAction.label}
         />
       ) : null}
-    </div>
+    </AdminPageShell>
   );
 }

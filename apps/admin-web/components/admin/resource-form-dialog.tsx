@@ -44,10 +44,13 @@ export function ResourceFormDialog({
     }),
     [baseFields, initialRecord, mode],
   );
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Preserve in-progress edits until the effective form shape changes.
   const initialValues = useMemo(
     () => createInitialValues(baseFields, initialRecord),
     [formStateKey],
   );
+  /* eslint-enable react-hooks/exhaustive-deps */
   const [values, setValues] = useState<Record<string, string | boolean>>(() => initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [options, setOptions] = useState<OptionMap>({});
@@ -147,7 +150,7 @@ export function ResourceFormDialog({
             </div>
           ))}
         </div>
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
           <Button onClick={onClose} type="button" variant="secondary">{t("common.cancel")}</Button>
           <Button disabled={submitting} onClick={() => void submit()} type="button">
             {submitting ? t("common.saving") : mode === "create" ? t("common.create") : t("common.saveChanges")}
@@ -238,7 +241,7 @@ function FieldInput({
   }
   if (field.type === "boolean") {
     return (
-      <label className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" htmlFor={id}>
+      <label className="mt-3 flex items-center gap-3 rounded-[22px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]" htmlFor={id}>
         <input
           aria-label={field.placeholder ?? field.label}
           checked={Boolean(value)}

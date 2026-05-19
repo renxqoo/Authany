@@ -28,11 +28,10 @@ export async function clearAdminSession() {
 
 export async function readAdminSession() {
   const cookieStore = await cookies();
-  const raw = cookieStore.get("authany_admin_session")?.value;
+  const raw = cookieStore.get(getAdminEnv().cookieName)?.value;
   if (!raw) {
     return null;
   }
-  const env = getAdminEnv();
   const session = decodeSession(raw);
   if (!session || session.expiresAt <= Date.now()) {
     return null;

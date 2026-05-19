@@ -15,7 +15,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
-      <body><I18nProvider initialLocale={locale}>{children}</I18nProvider></body>
+      <body className="min-h-screen text-slate-900"><I18nProvider initialLocale={locale}>{children}</I18nProvider></body>
     </html>
   );
 }

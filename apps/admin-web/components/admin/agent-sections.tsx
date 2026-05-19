@@ -82,37 +82,39 @@ export function AgentOperationsSection({
           {issuedCredential ? <SecretField label={t("admin.agent.issuedCredential")} value={issuedCredential} /> : null}
           <Button disabled={agent.status !== "active"} onClick={() => void issue()} type="button">{t("admin.agent.issueCredential")}</Button>
           {agent.credentials.length === 0 ? <Alert>{t("admin.agent.credentialsEmpty")}</Alert> : (
-            <Table>
-              <thead>
-                <tr>
-                  <Th>{t("field.credential_type")}</Th>
-                  <Th>{t("field.hint")}</Th>
-                  <Th>{t("field.status")}</Th>
-                  <Th>{t("field.issuedAt")}</Th>
-                  <Th>{t("resource.actionsColumn")}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {agent.credentials.map((credential) => (
-                  <tr key={credential.id}>
-                    <Td>{credential.credential_type}</Td>
-                    <Td><code>{credential.credential_hint}</code></Td>
-                    <Td>{credential.status}</Td>
-                    <Td>{new Date(credential.issued_at).toLocaleString()}</Td>
-                    <Td>
-                      <Button
-                        disabled={credential.status !== "active"}
-                        onClick={() => void revoke(credential.id)}
-                        type="button"
-                        variant="secondary"
-                      >
-                        {t("common.revoke")}
-                      </Button>
-                    </Td>
+            <div className="overflow-x-auto">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>{t("field.credential_type")}</Th>
+                    <Th>{t("field.hint")}</Th>
+                    <Th>{t("field.status")}</Th>
+                    <Th>{t("field.issuedAt")}</Th>
+                    <Th>{t("resource.actionsColumn")}</Th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {agent.credentials.map((credential) => (
+                    <tr key={credential.id}>
+                      <Td>{credential.credential_type}</Td>
+                      <Td><code>{credential.credential_hint}</code></Td>
+                      <Td>{credential.status}</Td>
+                      <Td>{new Date(credential.issued_at).toLocaleString()}</Td>
+                      <Td>
+                        <Button
+                          disabled={credential.status !== "active"}
+                          onClick={() => void revoke(credential.id)}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {t("common.revoke")}
+                        </Button>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -122,51 +124,55 @@ export function AgentOperationsSection({
           <div>
             <div className="mb-3 text-sm font-medium text-slate-900">{t("admin.agent.runtimesTitle")}</div>
             {agent.runtimes.length === 0 ? <Alert>{t("admin.agent.runtimesEmpty")}</Alert> : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>{t("field.runtime_id")}</Th>
-                    <Th>{t("field.type")}</Th>
-                    <Th>{t("field.runtime_mode")}</Th>
-                    <Th>{t("field.status")}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agent.runtimes.map((runtime) => (
-                    <tr key={runtime.id}>
-                      <Td><code>{runtime.runtime_id}</code></Td>
-                      <Td>{runtime.runtime_type}</Td>
-                      <Td>{runtime.runtime_mode}</Td>
-                      <Td>{runtime.status}</Td>
+              <div className="overflow-x-auto">
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>{t("field.runtime_id")}</Th>
+                      <Th>{t("field.type")}</Th>
+                      <Th>{t("field.runtime_mode")}</Th>
+                      <Th>{t("field.status")}</Th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {agent.runtimes.map((runtime) => (
+                      <tr key={runtime.id}>
+                        <Td><code>{runtime.runtime_id}</code></Td>
+                        <Td>{runtime.runtime_type}</Td>
+                        <Td>{runtime.runtime_mode}</Td>
+                        <Td>{runtime.status}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
             )}
           </div>
           <div>
             <div className="mb-3 text-sm font-medium text-slate-900">{t("admin.agent.connectionsTitle")}</div>
             {connections.length === 0 ? <Alert>{t("admin.agent.connectionsEmpty")}</Alert> : (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>{t("field.connection_id")}</Th>
-                    <Th>{t("field.target_resource")}</Th>
-                    <Th>{t("field.grants")}</Th>
-                    <Th>{t("field.status")}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {connections.map((connection) => (
-                    <tr key={connection.id}>
-                      <Td><code>{connection.connection_id}</code></Td>
-                      <Td>{connection.target_resource}</Td>
-                      <Td>{connection.grant_count}</Td>
-                      <Td>{connection.status}</Td>
+              <div className="overflow-x-auto">
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>{t("field.connection_id")}</Th>
+                      <Th>{t("field.target_resource")}</Th>
+                      <Th>{t("field.grants")}</Th>
+                      <Th>{t("field.status")}</Th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {connections.map((connection) => (
+                      <tr key={connection.id}>
+                        <Td><code>{connection.connection_id}</code></Td>
+                        <Td>{connection.target_resource}</Td>
+                        <Td>{connection.grant_count}</Td>
+                        <Td>{connection.status}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
             )}
           </div>
         </CardContent>

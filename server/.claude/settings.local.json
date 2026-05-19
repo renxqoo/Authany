@@ -4,5 +4,10 @@
     "context7",
     "tavily",
     "shadcn"
-  ]
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(lsof:*)"
+    ]
+  }
 }

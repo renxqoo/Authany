@@ -15,10 +15,10 @@ export function CopyableField({ label, value }: { label: string; value: string }
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+    <div className="rounded-[24px] border border-slate-200/80 bg-slate-50/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</div>
       <div className="mt-2 flex items-center gap-3">
-        <code className="min-w-0 flex-1 truncate rounded-lg bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-200">{value}</code>
+        <code className="min-w-0 flex-1 truncate rounded-2xl bg-white px-3 py-3 text-sm text-slate-900 ring-1 ring-slate-200/80">{value}</code>
         <Button onClick={copy} type="button" variant="secondary">{copied ? t("common.copied") : t("common.copy")}</Button>
       </div>
     </div>

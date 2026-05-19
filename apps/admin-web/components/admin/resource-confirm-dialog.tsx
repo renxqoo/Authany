@@ -45,7 +45,7 @@ export function ResourceConfirmDialog({
             />
           </label>
         ) : null}
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
           <Button onClick={onClose} type="button" variant="secondary">{t("common.cancel")}</Button>
           <Button
             disabled={busy || (matchValue ? confirmValue !== matchValue : false)}

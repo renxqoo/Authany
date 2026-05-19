@@ -5,7 +5,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return (
     <input
       className={cn(
-        "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-slate-950/10 transition placeholder:text-slate-400 focus:ring-4",
+        "h-12 w-full rounded-2xl border border-slate-200/80 bg-white/86 px-4 text-sm text-slate-900 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100",
         className,
       )}
       {...props}
@@ -17,7 +17,7 @@ export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<H
   return (
     <textarea
       className={cn(
-        "min-h-28 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm outline-none ring-slate-950/10 transition placeholder:text-slate-400 focus:ring-4",
+        "min-h-32 w-full rounded-2xl border border-slate-200/80 bg-white/86 px-4 py-3 font-mono text-sm text-slate-900 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100",
         className,
       )}
       {...props}
@@ -29,7 +29,7 @@ export function Select({ className, children, ...props }: React.SelectHTMLAttrib
   return (
     <select
       className={cn(
-        "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none ring-slate-950/10 transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400",
+        "h-12 w-full appearance-none rounded-2xl border border-slate-200/80 bg-white/86 px-4 text-sm text-slate-900 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400",
         className,
       )}
       {...props}

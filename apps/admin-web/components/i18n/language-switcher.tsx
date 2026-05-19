@@ -11,7 +11,7 @@ export function LanguageSwitcher() {
       {t("language.label")}
       <select
         aria-label={t("language.label")}
-        className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 outline-none ring-slate-950/10 transition focus:ring-4"
+        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none ring-slate-950/10 transition focus:ring-4"
         onChange={(event) => setLocale(event.target.value as typeof locale)}
         value={locale}
       >

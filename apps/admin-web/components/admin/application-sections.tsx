@@ -78,26 +78,28 @@ export function ApplicationSecretSection({
             {t("admin.app.rotateSecret")}
           </Button>
         </div>
-        <Table>
-          <thead>
-            <tr>
-              <Th>{t("field.hint")}</Th>
-              <Th>{t("field.status")}</Th>
-              <Th>{t("field.issuedAt")}</Th>
-              <Th>{t("field.lastUsedAt")}</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {app.secrets.map((secret) => (
-              <tr key={secret.id}>
-                <Td><code>{secret.hint}</code></Td>
-                <Td>{secret.status}</Td>
-                <Td>{new Date(secret.created_at).toLocaleString()}</Td>
-                <Td>{secret.last_used_at ? new Date(secret.last_used_at).toLocaleString() : "-"}</Td>
+        <div className="overflow-x-auto">
+          <Table>
+            <thead>
+              <tr>
+                <Th>{t("field.hint")}</Th>
+                <Th>{t("field.status")}</Th>
+                <Th>{t("field.issuedAt")}</Th>
+                <Th>{t("field.lastUsedAt")}</Th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {app.secrets.map((secret) => (
+                <tr key={secret.id}>
+                  <Td><code>{secret.hint}</code></Td>
+                  <Td>{secret.status}</Td>
+                  <Td>{new Date(secret.created_at).toLocaleString()}</Td>
+                  <Td>{secret.last_used_at ? new Date(secret.last_used_at).toLocaleString() : "-"}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

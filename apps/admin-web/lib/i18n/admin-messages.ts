@@ -1,5 +1,6 @@
 export const adminMessages = {
   en: {
+    "admin.activeFilters": "Active filters",
     "admin.badge": "Admin UI",
     "admin.backToList": "Back to {title}",
     "admin.confirm.matchValue": "Type the required value to continue",
@@ -62,6 +63,7 @@ export const adminMessages = {
     "admin.validation.expiresRequired": "Expires at is required. Avoid creating indefinite allow grants from the admin UI."
   },
   "zh-CN": {
+    "admin.activeFilters": "生效筛选",
     "admin.badge": "管理后台",
     "admin.backToList": "返回{title}",
     "admin.confirm.matchValue": "请输入指定值后继续",

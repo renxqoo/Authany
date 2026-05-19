@@ -13,6 +13,7 @@ import { AdminResourceApiError, adminResourceFetch, loadRemoteOptions, normalize
 import type { ResourceKey } from "@/lib/admin/types";
 import { ResourceFormDialog } from "./resource-form-dialog";
 import { CopyableField } from "./copyable-field";
+import { AdminHero, AdminMetric, AdminPageShell } from "./page-shell";
 import { ResourceTable } from "./resource-table";
 import { SecretField } from "./secret-field";
 
@@ -32,6 +33,10 @@ export function AdminResourceListPage({ resourceKey }: { resourceKey: ResourceKe
   const remoteFilters = useMemo(
     () => definition.filters?.filter((filter) => filter.optionSource) ?? [],
     [definition],
+  );
+  const activeFilterCount = useMemo(
+    () => Object.values(filters).filter((value) => value.trim()).length,
+    [filters],
   );
 
   const load = useCallback(async () => {
@@ -90,27 +95,28 @@ export function AdminResourceListPage({ resourceKey }: { resourceKey: ResourceKe
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.95),rgba(255,255,255,0.98)_45%,rgba(240,249,255,0.95))] p-8 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">{t("admin.badge")}</div>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">{definition.title}</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{definition.description}</p>
-          </div>
-          <div className="flex gap-3">
+    <AdminPageShell>
+      <AdminHero
+        actions={(
+          <>
             <Button onClick={() => void load()} type="button" variant="secondary">{t("common.refresh")}</Button>
             {definition.createFields ? (
               <Button onClick={() => setCreating(true)} type="button">{definition.createLabel ?? t("common.create")}</Button>
             ) : null}
-          </div>
-        </div>
-      </section>
+          </>
+        )}
+        description={definition.description}
+        eyebrow={t("admin.badge")}
+        title={definition.title}
+      >
+        <AdminMetric label={t("resource.records")} value={loading ? t("common.loading") : String(visibleRows.length)} />
+        {(definition.filters ?? []).length > 0 ? <AdminMetric label={t("admin.activeFilters")} value={String(activeFilterCount)} /> : null}
+      </AdminHero>
 
       {error ? <Alert>{error}</Alert> : null}
       {lastResult ? <MutationSummary result={lastResult} /> : null}
 
-      <Card className="rounded-[32px] border-slate-200">
+      <Card className="rounded-[30px]">
         <CardContent className="space-y-5 p-6">
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1.8fr)_repeat(3,minmax(0,0.8fr))]">
             <Input onChange={(event) => setQuery(event.target.value)} placeholder={t("admin.searchPlaceholder", { title: definition.title })} value={query} />
@@ -147,7 +153,7 @@ export function AdminResourceListPage({ resourceKey }: { resourceKey: ResourceKe
           title={t("resource.createTitle", { title: definition.title })}
         />
       ) : null}
-    </div>
+    </AdminPageShell>
   );
 }
 
@@ -161,7 +167,7 @@ function MutationSummary({ result }: { result: Record<string, unknown> }) {
   }
 
   return (
-    <Card className="rounded-[28px] border-amber-200 bg-amber-50/70">
+    <Card className="rounded-[28px] border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.88),rgba(255,247,237,0.94))]">
       <CardContent className="grid gap-4 p-6 md:grid-cols-2">
         {typeof result.app_id === "string" ? <CopyableField label={t("admin.app.appId")} value={result.app_id} /> : null}
         {typeof result.agent_id === "string" ? <CopyableField label={t("field.agent_id")} value={result.agent_id} /> : null}

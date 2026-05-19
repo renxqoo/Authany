@@ -11,11 +11,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen px-3 py-3 sm:px-4 sm:py-4">
       <AdminNav />
-      <div className="pl-80">
+      <div className="xl:pl-[21.5rem]">
         <Topbar />
-        <main className="p-10">{children}</main>
+        <main className="px-3 pb-6 pt-4 sm:px-4 sm:pb-8 lg:px-6 xl:px-8 xl:pb-10 xl:pt-6">{children}</main>
       </div>
     </div>
   );

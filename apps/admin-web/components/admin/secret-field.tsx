@@ -51,10 +51,10 @@ export function SecretField({
   }
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">{label}</div>
+    <div className="rounded-[24px] border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.94),rgba(255,247,237,0.96))] p-4 shadow-[0_18px_36px_-28px_rgba(245,158,11,0.55)]">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">{label}</div>
       <div className="mt-2 flex items-center gap-3">
-        <code className="min-w-0 flex-1 truncate rounded-lg bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-amber-200">
+        <code className="min-w-0 flex-1 truncate rounded-2xl bg-white px-3 py-3 text-sm text-slate-900 ring-1 ring-amber-200">
           {visible && secret ? secret : "••••••••••••••••••••••••"}
         </code>
         <Button disabled={busy} onClick={reveal} type="button" variant="secondary">
