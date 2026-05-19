@@ -279,12 +279,17 @@ async function main() {
   });
 
   console.log(JSON.stringify({
-    oauthClient: { client_id: "demo-web", client_secret: clientSecret },
-    adminClient: { client_id: "authany-admin-web", client_secret: adminClientSecret },
-    agent: { agent_id: "agent_demo", runtime_id: runtime.runtimeId, caller_credential: callerSecret },
+    oauthClient: { client_id: "demo-web", client_secret: "[REDACTED]" },
+    adminClient: { client_id: "authany-admin-web", client_secret: "[REDACTED]" },
+    agent: { agent_id: "agent_demo", runtime_id: runtime.runtimeId, caller_credential: "[REDACTED]" },
     targetResource: { target_resource: "demo-target" },
     targetConnections: ["tc_demo_application_target", "tc_demo_agent_target"],
-    accessGrants: ["ag_demo_application_target", "ag_demo_agent_target"]
+    accessGrants: ["ag_demo_application_target", "ag_demo_agent_target"],
+    generatedSecrets: {
+      oauthClient: Boolean(clientSecret),
+      adminClient: Boolean(adminClientSecret),
+      agentCallerCredential: Boolean(callerSecret)
+    }
   }, null, 2));
 }
 

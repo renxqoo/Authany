@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof:*)",
+      "Bash(sudo lsof:*)",
+      "Bash(fuser:*)",
+      "Bash(sudo kill:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "context7",
+    "tavily",
+    "shadcn"
+  ]
+}

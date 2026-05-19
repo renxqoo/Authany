@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PGPASSWORD=quantagent123 psql:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)",
+      "Bash(pnpm install:*)",
+      "Bash(ls:*)",
+      "Bash(git -C /Users/wrr/work/authany/example/target-service diff --name-only HEAD)",
+      "Bash(git -C /Users/wrr/work/authany/example/target-service diff HEAD -- src/auth.ts)",
+      "Bash(git -C /Users/wrr/work/authany diff HEAD -- example/target-service/src/app.ts)",
+      "Bash(git -C /Users/wrr/work/authany diff HEAD -- example/target-service/src/resource.ts)",
+      "Bash(git -C /Users/wrr/work/authany diff HEAD -- example/target-service/package.json)",
+      "Bash(git -C /Users/wrr/work/authany diff HEAD -- example/target-service/src/env.ts)",
+      "Bash(pnpm list:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "context7",
+    "tavily",
+    "shadcn"
+  ]
+}

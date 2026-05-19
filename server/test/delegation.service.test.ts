@@ -121,6 +121,32 @@ describe("target token exchange", () => {
     );
   });
 
+  it("rejects excessively deep external context payloads", async () => {
+    const { prisma, service } = createService();
+    mockAgentRequester(prisma);
+    prisma.targetResourceRegistration.findFirst.mockResolvedValue(target());
+    prisma.targetConnection.findFirst.mockResolvedValue(connection());
+
+    await expectErrorCode(
+      service.exchange(createRequesterRequest({
+        ...agentRequesterClaims(),
+        external_context: {
+          provider: "demo-web",
+          nested: {
+            level2: {
+              level3: {
+                level4: {
+                  level5: true
+                }
+              }
+            }
+          }
+        }
+      }) as never, targetAccessRequest()),
+      "invalid_external_context",
+    );
+  });
+
   it("does not accept naked body identity without a requester JWT", async () => {
     const { service } = createService();
     await expectErrorCode(service.exchange(createMockRequest() as never, targetAccessRequest()), "invalid_requester_jwt");

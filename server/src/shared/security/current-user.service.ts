@@ -3,6 +3,7 @@ import type { FastifyRequest } from "fastify";
 import { LoginSessionService } from "./login-session.service";
 import { AppConfigService } from "../config/app-config.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { ClientIpService } from "./client-ip.service";
 
 @Injectable()
 export class CurrentOperatorService {
@@ -10,6 +11,7 @@ export class CurrentOperatorService {
     private readonly sessions: LoginSessionService,
     private readonly config: AppConfigService,
     private readonly prisma: PrismaService,
+    private readonly clientIp: ClientIpService,
   ) {}
 
   async resolveOperatorId(request: FastifyRequest) {
@@ -19,7 +21,10 @@ export class CurrentOperatorService {
 
   async resolveActiveOperator(request: FastifyRequest) {
     const cookieValue = request.cookies?.[this.config.loginCookieName];
-    const session = await this.sessions.parse(cookieValue);
+    const session = await this.sessions.parse(cookieValue, {
+      ip: this.clientIp.resolve(request),
+      userAgent: readUserAgent(request)
+    });
     if (!session) {
       return null;
     }
@@ -31,4 +36,9 @@ export class CurrentOperatorService {
       }
     });
   }
+}
+
+function readUserAgent(request: FastifyRequest) {
+  const userAgent = request.headers["user-agent"];
+  return Array.isArray(userAgent) ? userAgent[0] : userAgent;
 }

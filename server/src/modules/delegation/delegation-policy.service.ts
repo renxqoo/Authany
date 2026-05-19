@@ -111,6 +111,10 @@ export class DelegationPolicyService {
     if (allowedProviders.length > 0 && !allowedProviders.includes(provider)) {
       throw apiError(HttpStatus.BAD_REQUEST, "invalid_external_context", "External context provider is not allowed.");
     }
+    const summary = summarizeJsonShape(externalContext);
+    if (summary.depth > 4 || summary.nodes > 64) {
+      throw apiError(HttpStatus.BAD_REQUEST, "invalid_external_context", "External context is too deeply nested.");
+    }
     if (JSON.stringify(externalContext).length > 4096) {
       throw apiError(HttpStatus.BAD_REQUEST, "invalid_external_context", "External context is too large.");
     }
@@ -123,4 +127,25 @@ export class DelegationPolicyService {
 
 export function digestJson(value: Record<string, unknown>) {
   return createHash("sha256").update(stableJsonStringify(value)).digest("base64url");
+}
+
+function summarizeJsonShape(value: unknown, depth = 1): { depth: number; nodes: number } {
+  if (value === null || typeof value !== "object") {
+    return { depth, nodes: 1 };
+  }
+
+  const children = Array.isArray(value)
+    ? value
+    : Object.values(value);
+
+  let maxDepth = depth;
+  let nodes = 1;
+
+  for (const child of children) {
+    const summary = summarizeJsonShape(child, depth + 1);
+    maxDepth = Math.max(maxDepth, summary.depth);
+    nodes += summary.nodes;
+  }
+
+  return { depth: maxDepth, nodes };
 }

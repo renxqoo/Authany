@@ -10,9 +10,12 @@ import { HttpExceptionFilter } from "./shared/http/http-exception.filter";
 import { createCorsOptions, createHelmetOptions } from "./shared/http/security-headers";
 
 async function bootstrap() {
+  const bootstrapConfig = new AppConfigService();
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: false }),
+    new FastifyAdapter({
+      trustProxy: bootstrapConfig.trustedProxies.length > 0 ? bootstrapConfig.trustedProxies : false
+    }),
   );
 
   const config = app.get(AppConfigService);

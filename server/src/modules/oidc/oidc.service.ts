@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, randomUUID } from "node:crypto";
-import { decodeJwt } from "jose";
 import type { FastifyRequest } from "fastify";
 import { PrismaService } from "../../shared/prisma/prisma.service";
 import { AppConfigService } from "../../shared/config/app-config.service";
@@ -160,7 +159,8 @@ export class OidcService {
     return this.issueStandardTokens({
       operatorId: codeRecord.operatorId,
       client,
-      scope: codeRecord.scope
+      scope: codeRecord.scope,
+      nonce: codeRecord.nonce ?? undefined
     });
   }
 
@@ -304,13 +304,12 @@ export class OidcService {
     }
 
     if (!refresh) {
-      const jti = this.extractJwtJti(token);
-      if (jti) {
-        const accessRecord = await this.prisma.oAuthAccessTokenRecord.findUnique({ where: { jti } });
-        if (accessRecord?.clientId && accessRecord.clientId !== client.id) {
+      const accessRecord = await this.resolveRevocableAccessTokenRecord(token);
+      if (accessRecord) {
+        if (accessRecord.clientId && accessRecord.clientId !== client.id) {
           throw apiError(HttpStatus.UNAUTHORIZED, "invalid_client", "Token does not belong to the authenticated client.");
         }
-        await this.createRevocation(jti, tokenTypeHint ?? "access_token");
+        await this.createRevocation(accessRecord.jti, tokenTypeHint ?? "access_token");
       }
     }
 
@@ -383,6 +382,7 @@ export class OidcService {
     operatorId: string;
     client: { id: string; clientId: string; allowedScopes?: unknown };
     scope: string;
+    nonce?: string;
   }) {
     const scope = input.scope;
     const requestedScopes = scope.split(" ").filter(Boolean);
@@ -444,7 +444,8 @@ export class OidcService {
     const idToken = await this.tokenSigner.sign(
       {
         sub: `operator:${input.operatorId}`,
-        aud: input.client.clientId
+        aud: input.client.clientId,
+        ...(input.nonce ? { nonce: input.nonce } : {})
       },
       {
         audience: input.client.clientId,
@@ -510,11 +511,22 @@ export class OidcService {
     });
   }
 
-  private extractJwtJti(token: string) {
+  private async resolveRevocableAccessTokenRecord(token: string) {
     try {
-      return String(decodeJwt(token).jti ?? "");
+      const verified = await this.tokenSigner.verify(token, this.config.baseUrl);
+      const jti = String(verified.payload.jti ?? "");
+      if (!jti) {
+        return null;
+      }
+      const accessRecord = await this.prisma.oAuthAccessTokenRecord.findUnique({
+        where: { jti }
+      });
+      if (!accessRecord || accessRecord.tokenType !== "access_token") {
+        return null;
+      }
+      return accessRecord;
     } catch {
-      return "";
+      return null;
     }
   }
 }

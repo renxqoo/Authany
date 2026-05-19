@@ -12,11 +12,7 @@ export class ReplayProtectionService {
     private readonly metrics: MetricsService,
   ) {}
 
-  async assertNotReplayed(requestId?: string) {
-    if (!requestId) {
-      return;
-    }
-
+  async assertNotReplayed(requestId: string) {
     const key = `replay:${this.config.tenantId}:${requestId}`;
     let accepted = false;
     try {

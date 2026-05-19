@@ -4,22 +4,29 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "predev": "pnpm --filter @authany/sdk build",
     "dev": "tsx src/server.ts",
+    "prebuild": "pnpm --filter @authany/sdk build",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
+    "pretest": "pnpm --filter @authany/sdk build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check:file-size": "tsx scripts/check-file-size.ts"
+    "check:file-size": "tsx scripts/check-file-size.ts",
+    "seed-users": "tsx scripts/init-users.ts"
   },
   "dependencies": {
+    "@authany/sdk": "workspace:*",
     "fastify": "^5.3.3",
-    "jose": "^6.0.11"
+    "jose": "^6.0.11",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@eslint/js": "latest",
     "@types/node": "latest",
+    "@types/pg": "^8.20.0",
     "eslint": "^9.39.1",
     "tsx": "latest",
     "typescript": "latest",

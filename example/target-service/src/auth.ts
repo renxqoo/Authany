@@ -1,57 +1,115 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
-import type { TargetServiceEnv } from "./env.js";
+import { randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import type { JWTPayload } from "jose";
+import { SignJWT, jwtVerify } from "jose";
+import type { TargetAccessClaims } from "@authany/sdk";
+import type { FastifyRequest } from "fastify";
 
-export class TargetAuthError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code: string,
-  ) {
-    super(message);
-  }
-}
+// ── Types ────────────────────────────────────────────────────────────────
 
-export interface TargetAccessClaims extends JWTPayload {
+export interface LocalAccessClaims extends JWTPayload {
+  iss: "target-service-local";
   sub: string;
-  agent_id?: string;
-  app_id?: string;
-  delegation_type?: string;
-  external_context?: Record<string, unknown>;
-  token_use: "target_access";
+  username: string;
+  display_name: string;
+  token_use: "local_access";
+  exp: number;
+  iat: number;
+  jti: string;
 }
 
-export function bearerToken(authorization?: string) {
-  if (!authorization?.startsWith("Bearer ")) {
-    throw new TargetAuthError("Bearer target access token is required.", 401, "missing_token");
-  }
-  return authorization.slice("Bearer ".length).trim();
+export type AnyAccessClaims = TargetAccessClaims | LocalAccessClaims;
+
+export function isLocalClaims(claims: AnyAccessClaims): claims is LocalAccessClaims {
+  return claims.iss === "target-service-local";
 }
 
-export async function verifyDelegationToken(authorization: string | undefined, env: TargetServiceEnv) {
-  const token = bearerToken(authorization);
-  const jwks = createRemoteJWKSet(new URL("/.well-known/jwks.json", env.issuer));
-  const verified = await jwtVerify(token, jwks, {
-    issuer: env.issuer,
-    audience: env.audience
+// ── JWT signing & verification ───────────────────────────────────────────
+
+interface SignLocalParams {
+  userId: number;
+  username: string;
+  displayName: string;
+}
+
+export async function signLocalAccessToken(
+  params: SignLocalParams,
+  jwtSecret: string,
+): Promise<string> {
+  const secret = new TextEncoder().encode(jwtSecret);
+  return new SignJWT({
+    sub: `user:${params.userId}`,
+    username: params.username,
+    display_name: params.displayName,
+    token_use: "local_access",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuer("target-service-local")
+    .setIssuedAt()
+    .setExpirationTime("8h")
+    .setJti(randomUUID())
+    .sign(secret);
+}
+
+export async function verifyLocalAccessToken(
+  token: string,
+  jwtSecret: string,
+): Promise<LocalAccessClaims> {
+  const secret = new TextEncoder().encode(jwtSecret);
+  const { payload } = await jwtVerify(token, secret, {
+    issuer: "target-service-local",
   });
-  return assertDelegationClaims(verified.payload);
+  return payload as LocalAccessClaims;
 }
 
-export function assertDelegationClaims(payload: JWTPayload): TargetAccessClaims {
-  const subject = typeof payload.sub === "string" ? payload.sub : "";
-  const agentId = typeof payload.agent_id === "string" ? payload.agent_id : "";
-  const appId = typeof payload.app_id === "string" ? payload.app_id : "";
-  if (payload.token_use !== "target_access") {
-    throw new TargetAuthError("Token is not a target access token.", 401, "invalid_token");
+export function isLocalToken(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const payload: JWTPayload = JSON.parse(
+      Buffer.from(parts[1], "base64url").toString("utf8"),
+    );
+    return payload.iss === "target-service-local";
+  } catch {
+    return false;
   }
-  if (!subject || (!agentId && !appId)) {
-    throw new TargetAuthError("Token is missing subject or principal identity.", 401, "invalid_token");
+}
+
+// ── Password hashing ────────────────────────────────────────────────────
+
+export function hashPassword(password: string): string {
+  const salt = randomUUID();
+  const derived = scryptSync(password, salt, 64);
+  return `${salt}:${derived.toString("hex")}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  const separatorIndex = storedHash.indexOf(":");
+  if (separatorIndex <= 0) return false;
+  const salt = storedHash.slice(0, separatorIndex);
+  const storedKey = storedHash.slice(separatorIndex + 1);
+  const derived = scryptSync(password, salt, 64);
+  const derivedHex = derived.toString("hex");
+  if (derivedHex.length !== storedKey.length) return false;
+  return timingSafeEqual(Buffer.from(derivedHex), Buffer.from(storedKey));
+}
+
+// ── Token extraction ────────────────────────────────────────────────────
+
+export function extractToken(request: FastifyRequest): string | null {
+  const authorization = request.headers.authorization;
+  if (authorization?.startsWith("Bearer ")) {
+    return authorization.slice("Bearer ".length).trim();
   }
-  return {
-    ...payload,
-    sub: subject,
-    agent_id: agentId || undefined,
-    app_id: appId || undefined,
-    token_use: "target_access"
-  };
+
+  const cookieHeader = request.headers.cookie;
+  if (cookieHeader) {
+    for (const pair of cookieHeader.split(";")) {
+      const [name, ...rest] = pair.split("=");
+      if (name.trim() === "token") {
+        return rest.join("=").trim();
+      }
+    }
+  }
+
+  return null;
 }

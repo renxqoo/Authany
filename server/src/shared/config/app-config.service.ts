@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
-  PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive().default(3100),
   AUTHANY_BASE_URL: z.string().url(),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
@@ -11,15 +11,35 @@ const envSchema = z.object({
   TENANT_ID: z.string().min(1),
   AUTHANY_APP_SECRET_ENCRYPTION_KEY: z.string().min(32),
   AUTHANY_LOGIN_COOKIE_NAME: z.string().min(1).default("authany_session"),
-  AUTHANY_AUTH_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
-  AUTHANY_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
-  AUTHANY_REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
-  AUTHANY_TARGET_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
-  AUTHANY_TARGET_TOKEN_REUSE_THRESHOLD_SECONDS: z.coerce.number().int().nonnegative().default(60),
+  AUTHANY_AUTH_CODE_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(300),
+  AUTHANY_ACCESS_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3600),
+  AUTHANY_REFRESH_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2592000),
+  AUTHANY_TARGET_TOKEN_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(900),
+  AUTHANY_TARGET_TOKEN_REUSE_THRESHOLD_SECONDS: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .default(60),
   AUTHANY_REPLAY_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   AUTHANY_CSP_FORM_ACTION_ORIGINS: z.string().default(""),
   AUTHANY_CORS_ORIGINS: z.string().default(""),
-  AUTHANY_TRUSTED_PROXIES: z.string().default("")
+  AUTHANY_TRUSTED_PROXIES: z.string().default(""),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;
@@ -106,8 +126,7 @@ export class AppConfigService {
   }
 
   get trustedProxies() {
-    return this.env.AUTHANY_TRUSTED_PROXIES
-      .split(",")
+    return this.env.AUTHANY_TRUSTED_PROXIES.split(",")
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -120,13 +139,15 @@ export class AppConfigService {
       "change-me-cookie-secret",
       "change-me-32-byte-app-secret-key",
       "admin-web-dev-secret-change-me",
-      "demo-web-dev-secret-change-me"
+      "demo-web-dev-secret-change-me",
     ]);
     if (weakValues.has(this.env.COOKIE_SECRET)) {
       throw new Error("COOKIE_SECRET must be a strong production secret.");
     }
     if (weakValues.has(this.env.AUTHANY_APP_SECRET_ENCRYPTION_KEY)) {
-      throw new Error("AUTHANY_APP_SECRET_ENCRYPTION_KEY must be a strong production secret.");
+      throw new Error(
+        "AUTHANY_APP_SECRET_ENCRYPTION_KEY must be a strong production secret.",
+      );
     }
   }
 }

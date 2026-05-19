@@ -24,7 +24,8 @@ export class AuthController {
     const context = getRequestContext(request, reply);
     const result = await this.authService.login(body.username, body.password, {
       ip: this.clientIp.resolve(request),
-      requestId: context.requestId
+      requestId: context.requestId,
+      userAgent: readUserAgent(request)
     });
 
     reply.setCookie(this.config.loginCookieName, result.sessionCookie, {
@@ -45,4 +46,9 @@ export class AuthController {
       context.requestId,
     );
   }
+}
+
+function readUserAgent(request: FastifyRequest) {
+  const userAgent = request.headers["user-agent"];
+  return Array.isArray(userAgent) ? userAgent[0] : userAgent;
 }

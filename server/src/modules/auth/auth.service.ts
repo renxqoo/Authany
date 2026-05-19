@@ -25,7 +25,7 @@ export class AuthService {
     private readonly redis: RedisService,
   ) {}
 
-  async login(username: string, password: string, context: { ip?: string; requestId?: string } = {}) {
+  async login(username: string, password: string, context: { ip?: string; requestId?: string; userAgent?: string } = {}) {
     const normalizedUsername = username.trim();
     const normalizedUserKey = normalizedUsername.toLowerCase() || "unknown";
     await this.rateLimit.assertAllowed({
@@ -87,7 +87,10 @@ export class AuthService {
     });
     return {
       operator,
-      sessionCookie: await this.sessions.create(operator.id)
+      sessionCookie: await this.sessions.create(operator.id, {
+        ip: context.ip,
+        userAgent: context.userAgent
+      })
     };
   }
 

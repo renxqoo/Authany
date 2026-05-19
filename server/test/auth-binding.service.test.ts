@@ -36,6 +36,43 @@ describe("operator authentication", () => {
     });
   });
 
+  it("binds operator sessions to the originating request fingerprint", async () => {
+    const prisma = createMockPrisma();
+    const hashes = new HashService();
+    const redis = createSessionRedis();
+    prisma.operatorAccount.findFirst.mockResolvedValue({
+      id: "operator_1",
+      username: "admin",
+      passwordHash: hashes.hashSecret("admin123"),
+      displayName: "Admin",
+      status: "active"
+    });
+    const service = new AuthService(
+      prisma as never,
+      hashes,
+      new LoginSessionService(createMockConfig() as never, redis as never),
+      createAllowingRateLimit() as never,
+      createMockConfig() as never,
+      { record: async () => undefined } as never,
+      { get: async () => null, increment: async () => 0, delete: async () => undefined, set: async () => undefined } as never,
+    );
+
+    const result = await service.login("admin", "admin123", {
+      ip: "127.0.0.1",
+      userAgent: "Vitest"
+    });
+    const sessions = new LoginSessionService(createMockConfig() as never, redis as never);
+
+    expect(await sessions.parse(result.sessionCookie, {
+      ip: "127.0.0.1",
+      userAgent: "Vitest"
+    })).toMatchObject({ operatorId: "operator_1" });
+    expect(await sessions.parse(result.sessionCookie, {
+      ip: "127.0.0.2",
+      userAgent: "Vitest"
+    })).toBeNull();
+  });
+
   it("rejects invalid operator credentials", async () => {
     const prisma = createMockPrisma();
     prisma.operatorAccount.findFirst.mockResolvedValue(null);

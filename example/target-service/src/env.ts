@@ -9,6 +9,12 @@ export interface TargetServiceEnv {
   issuer: string;
   audience: string;
   targetResource: string;
+  jwtSecret: string;
+  dbHost: string;
+  dbPort: number;
+  dbName: string;
+  dbUser: string;
+  dbPassword: string;
 }
 
 export function getTargetServiceEnv(): TargetServiceEnv {
@@ -20,7 +26,13 @@ export function getTargetServiceEnv(): TargetServiceEnv {
     port,
     issuer,
     audience,
-    targetResource
+    targetResource,
+    jwtSecret: requiredEnv("JWT_SECRET"),
+    dbHost: requiredEnv("DB_HOST"),
+    dbPort: requiredNumberEnv("DB_PORT"),
+    dbName: requiredEnv("DB_NAME"),
+    dbUser: requiredEnv("DB_USER"),
+    dbPassword: requiredEnv("DB_PASSWORD"),
   };
 }
 
@@ -41,7 +53,7 @@ function requiredNumberEnv(name: string) {
   throw new Error(`${name} must be a positive integer for example target-service.`);
 }
 
-function loadSharedExampleEnv() {
+export function loadSharedExampleEnv() {
   const sharedEnvPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../.env");
 
   let source = "";
@@ -70,6 +82,8 @@ function loadSharedExampleEnv() {
     ) {
       value = value.slice(1, -1);
     }
-    process.env[key] = value;
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
   }
 }

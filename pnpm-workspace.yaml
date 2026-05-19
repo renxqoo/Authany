@@ -2,6 +2,7 @@ packages:
   - server
   - apps/*
   - example/*
+  - packages/*
 
 allowBuilds:
   '@nestjs/core': true

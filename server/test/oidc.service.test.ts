@@ -8,6 +8,7 @@ import { createActiveTokenStatus } from "./security-test-helpers";
 
 describe("OidcService", () => {
   const hashes = new HashService();
+  const validVerifier = "abcdefghijklmnopqrstuvwxyz0123456789-._~ABCDE";
   let prisma: ReturnType<typeof createMockPrisma>;
   let tokenSigner: ReturnType<typeof createMockTokenSigner>;
   let service: OidcService;
@@ -109,9 +110,11 @@ describe("OidcService", () => {
     prisma.oAuthClient.findFirst.mockResolvedValue(activeClient(clientSecretHash));
     prisma.oAuthAccessTokenRecord.findUnique.mockResolvedValue({
       jti: "access-jti-1",
+      tokenType: "access_token",
       clientId: "client_db_1",
       expiresAt: new Date(Date.now() + 60_000)
     });
+    tokenSigner.verify.mockResolvedValueOnce({ payload: { jti: "access-jti-1", sub: "operator:operator_1" } });
     prisma.tokenRevocation.upsert.mockResolvedValue({});
     prisma.auditEvent.create.mockResolvedValue({});
 
@@ -129,6 +132,7 @@ describe("OidcService", () => {
     tokenSigner.verify.mockResolvedValueOnce({ payload: { jti: "revoked-jti", sub: "operator:operator_1" } });
     prisma.oAuthAccessTokenRecord.findUnique.mockResolvedValue({
       jti: "revoked-jti",
+      tokenType: "access_token",
       clientId: "client_db_1",
       expiresAt: new Date(Date.now() + 60_000)
     });
@@ -139,6 +143,40 @@ describe("OidcService", () => {
       clientId: "web",
       clientSecret: "client-secret"
     })).resolves.toMatchObject({ active: false });
+  });
+
+  it("does not revoke unknown or non-record JWTs", async () => {
+    prisma.oAuthRefreshToken.findUnique.mockResolvedValue(null);
+    prisma.oAuthClient.findFirst.mockResolvedValue(activeClient(clientSecretHash));
+    tokenSigner.verify.mockResolvedValueOnce({ payload: { jti: "unknown-jti", aud: "https://authany.test" } });
+    prisma.oAuthAccessTokenRecord.findUnique.mockResolvedValue(null);
+    prisma.auditEvent.create.mockResolvedValue({});
+
+    await expect(service.revokeToken({
+      token: "access.jwt.unknown",
+      tokenTypeHint: "access_token",
+      clientId: "web",
+      clientSecret: "client-secret"
+    })).resolves.toEqual({});
+
+    expect(prisma.tokenRevocation.upsert).not.toHaveBeenCalled();
+  });
+
+  it("does not revoke invalid or expired JWTs that fail verification", async () => {
+    prisma.oAuthRefreshToken.findUnique.mockResolvedValue(null);
+    prisma.oAuthClient.findFirst.mockResolvedValue(activeClient(clientSecretHash));
+    tokenSigner.verify.mockRejectedValueOnce(new Error("ERR_JWT_EXPIRED"));
+    prisma.auditEvent.create.mockResolvedValue({});
+
+    await expect(service.revokeToken({
+      token: "expired.jwt",
+      tokenTypeHint: "access_token",
+      clientId: "web",
+      clientSecret: "client-secret"
+    })).resolves.toEqual({});
+
+    expect(prisma.oAuthAccessTokenRecord.findUnique).not.toHaveBeenCalled();
+    expect(prisma.tokenRevocation.upsert).not.toHaveBeenCalled();
   });
 
   it("rejects expired OAuth client secrets", async () => {
@@ -200,8 +238,9 @@ describe("OidcService", () => {
       operatorId: "operator_1",
       redirectUri: "http://127.0.0.1:5173/callback",
       scope: "openid profile offline_access",
-      codeChallenge: createHash("sha256").update("verifier").digest("base64url"),
+      codeChallenge: createHash("sha256").update(validVerifier).digest("base64url"),
       codeChallengeMethod: "S256",
+      nonce: "nonce_123",
       expiresAt: new Date(Date.now() + 60_000)
     });
     prisma.operatorRole.findMany.mockResolvedValue([{ roleCode: "platform_admin", scope: "authany.admin" }]);
@@ -215,12 +254,15 @@ describe("OidcService", () => {
       clientSecret: "client-secret",
       code: "code",
       redirectUri: "http://127.0.0.1:5173/callback",
-      codeVerifier: "verifier"
+      codeVerifier: validVerifier
     });
 
     expect(tokenSigner.signWithMetadata).toHaveBeenCalledWith(expect.objectContaining({
       scope: "openid profile offline_access",
       roles: []
+    }), expect.any(Object));
+    expect(tokenSigner.sign).toHaveBeenCalledWith(expect.objectContaining({
+      nonce: "nonce_123"
     }), expect.any(Object));
   });
 });

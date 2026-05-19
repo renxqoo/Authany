@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { AppConfigService } from "../config/app-config.service";
 import { RedisService } from "../redis/redis.service";
 
@@ -7,6 +7,12 @@ interface LoginSessionPayload {
   operatorId: string;
   tenantId: string;
   expiresAt: number;
+  bindingDigest: string;
+}
+
+export interface SessionBinding {
+  ip?: string;
+  userAgent?: string;
 }
 
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
@@ -18,18 +24,19 @@ export class LoginSessionService {
     private readonly redis: RedisService,
   ) {}
 
-  async create(operatorId: string) {
+  async create(operatorId: string, binding: SessionBinding = {}) {
     const sessionId = randomBytes(32).toString("base64url");
     const payload: LoginSessionPayload = {
       operatorId,
       tenantId: this.config.tenantId,
-      expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000
+      expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000,
+      bindingDigest: this.bindingDigest(binding)
     };
     await this.redis.set(this.sessionKey(sessionId), JSON.stringify(payload), SESSION_TTL_SECONDS);
     return sessionId;
   }
 
-  async parse(cookieValue?: string | null) {
+  async parse(cookieValue?: string | null, binding: SessionBinding = {}) {
     if (!cookieValue || !isValidSessionId(cookieValue)) {
       return null;
     }
@@ -52,6 +59,11 @@ export class LoginSessionService {
       return null;
     }
 
+    if (!matchesDigest(payload.bindingDigest, this.bindingDigest(binding))) {
+      await this.redis.delete(this.sessionKey(cookieValue));
+      return null;
+    }
+
     return payload;
   }
 
@@ -64,6 +76,14 @@ export class LoginSessionService {
 
   private sessionKey(sessionId: string) {
     return `auth:session:${this.config.tenantId}:${sessionId}`;
+  }
+
+  private bindingDigest(binding: SessionBinding) {
+    const normalizedIp = normalizeBindingPart(binding.ip);
+    const normalizedUserAgent = normalizeBindingPart(binding.userAgent);
+    return createHmac("sha256", this.config.cookieSecret)
+      .update(`${this.config.tenantId}\n${normalizedIp}\n${normalizedUserAgent}`)
+      .digest("base64url");
   }
 }
 
@@ -81,6 +101,18 @@ function isSessionPayload(value: unknown, tenantId: string): value is LoginSessi
     payload.operatorId.trim() !== "" &&
     payload.tenantId === tenantId &&
     typeof payload.expiresAt === "number" &&
-    Number.isFinite(payload.expiresAt)
+    Number.isFinite(payload.expiresAt) &&
+    typeof payload.bindingDigest === "string" &&
+    payload.bindingDigest.length > 0
   );
+}
+
+function normalizeBindingPart(value: string | undefined) {
+  return (value ?? "").trim().slice(0, 512);
+}
+
+function matchesDigest(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
